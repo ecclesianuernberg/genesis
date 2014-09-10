@@ -14,10 +14,14 @@ def create_db():
 
 
 @manager.command
-def create_user(username, password):
-    user_datastore.create_user(
+def add_admin(username, email, password):
+    user = user_datastore.create_user(
         username=username,
+        email=email,
         password=password)
+
+    admin_role = user_datastore.find_or_create_role('admin')
+    user_datastore.add_role_to_user(user, admin_role)
     db.session.commit()
 
 

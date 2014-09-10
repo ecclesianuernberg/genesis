@@ -1,13 +1,8 @@
-from app import app, login_manager
-from flask import render_template
-from models import User
-
-
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
+from flask.ext.security import login_required
+from app import app
 
 
 @app.route('/')
+@login_required
 def index():
     return 'hello world'

@@ -4,6 +4,7 @@ from flask.ext.admin import Admin
 from flask.ext.admin.contrib.sqla import ModelView
 from flask.ext.login import current_user
 from flask.ext.security import Security, SQLAlchemyUserDatastore
+from flask.ext.migrate import Migrate
 import config
 
 
@@ -12,6 +13,9 @@ app.config.from_object(config.DevelopmentConfig)
 
 # SQL stuff
 db = SQLAlchemy(app)
+
+# Migrate
+migrate = Migrate(app, db)
 
 # import
 import views

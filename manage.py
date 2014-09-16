@@ -3,9 +3,6 @@ from flask.ext.migrate import MigrateCommand
 from flask.ext.script import Manager, Server
 
 
-print app.config['SQLALCHEMY_DATABASE_URI']
-
-
 server = Server(host=app.config['HOST'])
 manager = Manager(app)
 

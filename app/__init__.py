@@ -11,6 +11,9 @@ import config
 app = Flask(__name__)
 app.config.from_object(config.DevelopmentConfig)
 
+# Bootstrap
+Bootstrap(app)
+
 # SQL stuff
 db = SQLAlchemy(app)
 
@@ -31,6 +34,7 @@ class SecuredModelView(ModelView):
 admin = Admin(app)
 admin.add_view(SecuredModelView(models.User, db.session))
 admin.add_view(SecuredModelView(models.Role, db.session))
+admin.add_view(SecuredModelView(models.Group, db.session))
 
 # security
 user_datastore = SQLAlchemyUserDatastore(db, models.User, models.Role)

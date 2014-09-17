@@ -1,7 +1,6 @@
 body {
 	padding-top: 20px;
 	padding-bottom: 20px;
-
 }
 .navbar .brand {
 	max-height: 40px;
@@ -11,4 +10,14 @@ body {
 }
 .navbar a.navbar-brand {
 	padding: 9px 15px 8px;
+}
+.business-header {
+	padding-top: 20px;
+	padding-bottom: 20px;
+	height: 220px;
+	background: url("/static/images/header.png") center center no-repeat scroll;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	background-size: cover;
+	-o-background-size: cover;
 }

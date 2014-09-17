@@ -20,6 +20,9 @@ class Role(db.Model, RoleMixin):
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
 
+    def __repr__(self):
+        return '<Role %r>' % self.name
+
     def __unicode__(self):
         return self.name
 
@@ -41,6 +44,9 @@ class User(db.Model, UserMixin):
         backref='head',
         lazy='dynamic')
 
+    def __repr__(self):
+        return '<User %r>' % self.email
+
     def __unicode__(self):
         return self.username
 
@@ -50,13 +56,17 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True)
     head_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    description = db.Column(db.String(255), unique=True)
+    short_description = db.Column(db.String(255), unique=True)
+    long_description = db.Column(db.String(700), unique=True)
     active = db.Column(db.Boolean())
     users = db.relationship(
         'User',
         secondary=user_groups,
         backref=db.backref('groups',
                            lazy='dynamic'))
+
+    def __repr__(self):
+        return '<Group %r>' % self.name
 
     def __unicode__(self):
         return self.name

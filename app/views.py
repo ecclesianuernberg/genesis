@@ -11,8 +11,16 @@ def index():
 
 @app.route('/groups')
 def groups():
-    groups = models.Group.query.all()
+    groups = models.Group.query.filter_by(
+        active=True).order_by(models.Group.name).all()
     return render_template('groups.html', groups=groups)
+
+
+@app.route('/groups/<int:id>')
+def group(id):
+    group = models.Group.query.filter_by(
+        id=id).first()
+    return render_template('group.html', group=group)
 
 
 @app.route('/hello')

@@ -56,6 +56,8 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True)
     head_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    where = db.Column(db.String(255), unique=True)
+    when = db.Column(db.String(255), unique=True)
     short_description = db.Column(db.String(255), unique=True)
     long_description = db.Column(db.String(700), unique=True)
     active = db.Column(db.Boolean())

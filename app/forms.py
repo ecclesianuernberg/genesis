@@ -1,6 +1,6 @@
 from PIL import Image
 from flask_wtf import Form
-from wtforms import StringField, TextAreaField, BooleanField
+from wtforms import StringField, TextAreaField, BooleanField, SubmitField
 import wtforms.validators as validators
 
 
@@ -14,6 +14,12 @@ class EditGroupForm(Form):
     name = StringField(
         'Name',
         validators=[validators.DataRequired()])
+    where = StringField(
+        'Wo',
+        validators=[validators.DataRequired()])
+    when = StringField(
+        'Wann',
+        validators=[validators.DataRequired()])
     short_description = StringField(
         'Kurze Beschreibung',
         validators=[validators.DataRequired()])
@@ -21,3 +27,4 @@ class EditGroupForm(Form):
         'Lange Beschreibung',
         validators=[validators.DataRequired()])
     active = BooleanField('Active')
+    submit = SubmitField('Submit')

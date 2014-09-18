@@ -59,6 +59,7 @@ class Group(db.Model):
     short_description = db.Column(db.String(255), unique=True)
     long_description = db.Column(db.String(700), unique=True)
     active = db.Column(db.Boolean())
+    image = db.Column(db.Boolean())
     users = db.relationship(
         'User',
         secondary=user_groups,

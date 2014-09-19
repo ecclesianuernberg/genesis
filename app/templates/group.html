@@ -15,7 +15,7 @@
 <div class="container">
 	<h1>{{ group.name }} {% if current_user.get_id()|int == group.head_id|int %}<small><a href="{{ url_for('group_edit', id=group.id) }}"><span class="glyphicon glyphicon-pencil"></span></a></small>{% endif %}</h1>
 	{% if group.image %}
-	<img src="{{ url_for('.static', filename='images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail pull-right">
+	<img src="{{ url_for('.static', filename='group_images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail pull-right">
 	{% endif %}
 	<p>{{ group.long_description }}</p>
 </div>

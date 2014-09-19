@@ -1,13 +1,13 @@
-from PIL import Image
 from flask_wtf import Form
-from wtforms import StringField, TextAreaField, BooleanField, SubmitField
+from flask_wtf.file import (
+    FileField,
+    FileAllowed)
+from wtforms import (
+    StringField,
+    TextAreaField,
+    BooleanField,
+    SubmitField)
 import wtforms.validators as validators
-
-
-def image_resize(in_filename, out_filename, size=800):
-    img = Image.open(in_filename)
-    img.thumbnail((size, size), Image.ANTIALIAS)
-    img.save(out_filename)
 
 
 class EditGroupForm(Form):
@@ -26,5 +26,8 @@ class EditGroupForm(Form):
     long_description = TextAreaField(
         'Lange Beschreibung',
         validators=[validators.DataRequired()])
+    group_image = FileField(
+        'Bild',
+        validators=[FileAllowed(['jpg'], 'Nur JPGs')])
     active = BooleanField('Active')
     submit = SubmitField('Submit')

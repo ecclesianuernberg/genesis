@@ -12,6 +12,7 @@ class Config(object):
     TESTING = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
     HOST = '127.0.0.1'
+    UPLOAD_FOLDER = 'static/group_images'
 
 
 class DevelopmentConfig(Config):

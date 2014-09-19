@@ -3,7 +3,9 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.sqla import ModelView
 from flask.ext.login import current_user
-from flask.ext.security import Security, SQLAlchemyUserDatastore
+from flask.ext.security import (
+    Security,
+    SQLAlchemyUserDatastore)
 from flask.ext.migrate import Migrate
 from flask_bootstrap import Bootstrap
 import config

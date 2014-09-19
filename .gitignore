@@ -55,3 +55,4 @@ docs/_build/
 
 # OWNSTUFF
 *.db
+app/static/group_images/*.jpg

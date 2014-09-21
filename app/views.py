@@ -65,14 +65,17 @@ def group_edit(id):
 
             # save image and set the image db true
             form.group_image.data.stream.seek(0)
-            image_resize(
-                form.group_image.data.stream,
-                os.path.join(
-                    app.root_path,
-                    app.config['UPLOAD_FOLDER'],
-                    str(id) + '.jpg'),
-                size=300)
-            group.image = True
+            try:
+                image_resize(
+                    form.group_image.data.stream,
+                    os.path.join(
+                        app.root_path,
+                        app.config['UPLOAD_FOLDER'],
+                        str(id) + '.jpg'),
+                    size=300)
+                group.image = True
+            except:
+                pass
 
             # save to db
             db.session.commit()

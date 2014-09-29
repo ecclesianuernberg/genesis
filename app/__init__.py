@@ -8,6 +8,7 @@ from flask.ext.security import (
     SQLAlchemyUserDatastore)
 from flask.ext.migrate import Migrate
 from flask_bootstrap import Bootstrap
+from flask.ext.misaka import Misaka
 import config
 
 
@@ -16,6 +17,9 @@ app.config.from_object(config.DevelopmentConfig)
 
 # Bootstrap
 Bootstrap(app)
+
+# Misaka Markdown
+Misaka(app)
 
 # SQL stuff
 db = SQLAlchemy(app)

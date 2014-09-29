@@ -6,7 +6,7 @@
 	{% if group.image %}
 	<img src="{{ url_for('.static', filename='group_images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail pull-right">
 	{% endif %}
-	<p>{{ group.long_description }}</p>
+	{{ group.long_description|markdown}}
 </div>
 {{ super() }}
 {% endblock %}

@@ -72,7 +72,7 @@ def group_edit(id):
                         app.root_path,
                         app.config['UPLOAD_FOLDER'],
                         str(id) + '.jpg'),
-                    size=300)
+                    size=800)
                 group.image = True
             except:
                 pass

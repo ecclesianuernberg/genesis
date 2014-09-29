@@ -7,6 +7,18 @@
 		{% if group.image %}
 		<p class="text-center"><img src="{{ url_for('.static', filename='group_images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail"></p>
 		{% endif %}
+		<div class="panel panel-default">
+			<div class="panel-heading">Wann</div>
+			<div class="panel-body">{{ group.when }}</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">Wo</div>
+			<div class="panel-body">{{ group.where }}</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">Leitung</div>
+			<div class="panel-body">{{ group.head }}</div>
+		</div>
 		{{ group.long_description|markdown}}
 		<p><a class="btn btn-primary btn-lg pull-right" role="button">Learn more</a></p>
 	</div>

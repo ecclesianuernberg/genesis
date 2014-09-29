@@ -2,11 +2,17 @@
 
 {% block content %}
 <div class="container">
-	<h1>{{ group.name }} {% if current_user.get_id()|int == group.head_id|int %}<small><a href="{{ url_for('group_edit', id=group.id) }}"><span class="glyphicon glyphicon-pencil"></span></a></small>{% endif %}</h1>
-	{% if group.image %}
-	<img src="{{ url_for('.static', filename='group_images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail pull-right">
-	{% endif %}
-	{{ group.long_description|markdown}}
+	<div class="row">
+		<div class="col-md-4">
+			{% if group.image %}
+			<img src="{{ url_for('.static', filename='group_images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail">
+			{% endif %}
+		</div>
+		<div class="col-md-8">
+			<h1>{{ group.name }} {% if current_user.get_id()|int == group.head_id|int %}<small><a href="{{ url_for('group_edit', id=group.id) }}"><span class="glyphicon glyphicon-pencil"></span></a></small>{% endif %}</h1>
+			{{ group.long_description|markdown}}
+		</div>
+	</div>
 </div>
 {{ super() }}
 {% endblock %}

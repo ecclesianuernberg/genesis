@@ -42,6 +42,7 @@ admin = Admin(app)
 admin.add_view(SecuredModelView(models.User, db.session))
 admin.add_view(SecuredModelView(models.Role, db.session))
 admin.add_view(SecuredModelView(models.Group, db.session))
+admin.add_view(SecuredModelView(models.News, db.session))
 
 # security
 user_datastore = SQLAlchemyUserDatastore(db, models.User, models.Role)

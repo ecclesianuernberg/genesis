@@ -17,6 +17,11 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/news')
+def news():
+    pass
+
+
 @app.route('/groups')
 def groups():
     groups = models.Group.query.filter_by(

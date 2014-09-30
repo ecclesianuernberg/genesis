@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
 	<div class="jumbotron">
-		<h1 class="text-center">{{ group.name }} {% if current_user.get_id()|int == group.head_id|int %}<small><a href="{{ url_for('group_edit', id=group.id) }}"><span class="glyphicon glyphicon-pencil"></span></a></small>{% endif %}</h1>
+		<h1 class="text-center">{{ group.name }}</h1>
 		{% if group.image %}
 		<p class="text-center"><img src="{{ url_for('.static', filename='group_images/') }}{{ group.id }}.jpg" class="img-responsive img-thumbnail"></p>
 		{% endif %}

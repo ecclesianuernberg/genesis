@@ -1,20 +1,35 @@
+from urlparse import urljoin
 from PIL import Image
 from app import app, db
 from flask import (
     render_template,
     redirect,
+    request,
     url_for)
 from flask.ext.security import (
     login_required,
+    roles_accepted,
     current_user)
 import forms
 import models
 import os.path
 
 
+def make_external(url):
+    return urljoin(request.url_root, url)
+
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',
+                           edit_url=make_external('edit'))
+
+
+@app.route('/edit', methods=['GET', 'POST'])
+@roles_accepted('admin', 'editor')
+def index_edit():
+    form = forms.EditIndexForm()
+    return render_template('index_edit.html', form=form)
 
 
 @app.route('/news')
@@ -24,6 +39,7 @@ def news():
 
 @app.route('/groups')
 def groups():
+    ''' groups overview '''
     groups = models.Group.query.filter_by(
         active=True).order_by(models.Group.name).all()
     return render_template('groups.html', groups=groups)
@@ -33,7 +49,10 @@ def groups():
 def group(id):
     group = models.Group.query.filter_by(
         id=id).first()
-    return render_template('group.html', group=group)
+    return render_template('group.html',
+                           group=group,
+                           edit_url=make_external(
+                               '/groups/{}/edit'.format(id)))
 
 
 def image_resize(in_file, out_file, size=800):

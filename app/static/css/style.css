@@ -21,3 +21,6 @@ body {
 	background-size: cover;
 	-o-background-size: cover;
 }
+.panel-heading {
+	font-weight: bold;
+}

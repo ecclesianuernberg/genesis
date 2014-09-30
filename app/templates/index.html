@@ -2,6 +2,24 @@
 
 {% block content %}
 <div class="container">
+	<div class="row top-buffer">
+		<div class="col-xs-12">
+			<img src="{{ url_for('static', filename="images/front_first_row.jpg") }}" class="img-responsive full-width">
+		</div>
+	</div>
+	<div class="row top-buffer">
+		<div class="col-xs-12">
+			<img src="{{ url_for('static', filename="images/front_second_row.jpg") }}" class="img-responsive full-width">
+		</div>
+	</div>
+	<div class="row top-buffer">
+		<div class="col-xs-6">
+			<img src="{{ url_for('static', filename="images/front_third_row_left.jpg") }}" class="img-responsive full-width">
+		</div>
+		<div class="col-xs-6">
+			<img src="{{ url_for('static', filename="images/front_third_row_right.jpg") }}" class="img-responsive full-width">
+		</div>
+	</div>
 </div>
 {{ super() }}
 {% endblock %}

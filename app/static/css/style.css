@@ -24,3 +24,9 @@ body {
 .panel-heading {
 	font-weight: bold;
 }
+.top-buffer {
+	margin-top: 20px;
+}
+img.full-width {
+	width: 100%;
+}

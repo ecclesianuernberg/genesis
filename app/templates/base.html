@@ -1,0 +1,17 @@
+{% extends "bootstrap/base.html" %}
+
+{% block styles %}
+	{{super()}}
+	<link rel="stylesheet" href="{{ url_for('.static', filename='css/bootstrap.min.css') }}">
+	<link rel="stylesheet" href="{{ url_for('.static', filename='css/style.css') }}">
+{% endblock %}
+			
+{% block title %}{{ config['NAME'] }}{% endblock %}
+
+{% block navbar %}
+	{% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+	{% include "footer.html" %}
+{% endblock %}

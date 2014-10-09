@@ -1,0 +1,58 @@
+body {
+	padding-top: 20px;
+	padding-bottom: 20px;
+}
+.navbar .brand {
+	max-height: 40px;
+	overflow: visible;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+.navbar a.navbar-brand {
+	padding: 9px 15px 8px;
+}
+.business-header {
+	padding-top: 20px;
+	padding-bottom: 20px;
+	height: 220px;
+	background: url("/static/images/header.png") center center no-repeat scroll;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	background-size: cover;
+	-o-background-size: cover;
+}
+.panel-heading {
+	font-weight: bold;
+}
+.top-buffer {
+	margin-top: 20px;
+}
+img.full-width {
+	width: 100%;
+}
+.jumbotron {
+      	padding: 30px;
+	margin-bottom: 30px;
+	color: inherit;
+      	background-color: #fff;
+	border: 0px;
+	box-shadow: 0px 0px 0px #fff inset;
+}
+.jumbotron h1,
+.jumbotron .h1 {
+      	color: inherit;
+}
+.jumbotron p {
+      	margin-bottom: 15px;
+      	font-size: 21px;
+      	font-weight: 200;
+}
+.jumbotron > hr {
+      	border-top-color: #fff;
+}
+.container .jumbotron {
+      	border-radius: 0px;
+}
+.jumbotron .container {
+      	max-width: 100%;
+}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+	<div class="jumbotron">
+		<h1 class="text-center">{{ group.bezeichnung }}</h1>
+		{% if group_metadata.image %}
+		<p class="text-center"><img src="{{ url_for('.static', filename='group_images/') }}{{ group_metadata.image }}" class="img-responsive img-thumbnail"></p>
+		{% endif %}
+		{% if group.treffzeit %}
+		<div class="panel panel-default">
+			<div class="panel-heading">Wann</div>
+			<div class="panel-body">{{ group.treffzeit }}</div>
+		</div>
+		{% endif %}
+		{% if group.treffpunkt %}
+		<div class="panel panel-default">
+			<div class="panel-heading">Wo</div>
+			<div class="panel-body">{{ group.treffpunkt }}</div>
+		</div>
+		{% endif %}
+		{% if group.zielgruppe %}
+		<div class="panel panel-default">
+			<div class="panel-heading">Zielgruppe</div>
+			<div class="panel-body">{{ group.zielgruppe }}</div>
+		</div>
+		{% endif %}
+		{% if group.notiz %}
+		<div class="panel panel-default">
+			<div class="panel-heading">Notiz</div>
+			<div class="panel-body">{{ group.notiz }}</div>
+		</div>
+		{% endif %}
+		{% if group_metadata.description %}
+		{{ group_metadata.description|markdown }}
+		{% endif %}
+		<p><a class="btn btn-primary btn-lg pull-right" role="button">Kontakt</a></p>
+	</div>
+</div>
+{{ super() }}
+{% endblock %}

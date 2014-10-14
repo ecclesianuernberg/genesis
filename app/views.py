@@ -1,4 +1,5 @@
-from urlparse import urljoin
+from datetime import datetime
+from urlparse import urljoin, urlsplit
 from passlib.hash import bcrypt
 from PIL import Image
 from app import app, db
@@ -22,6 +23,11 @@ import uuid
 
 def make_external(url):
     return urljoin(request.url_root, url)
+
+
+def url_path_split(url):
+    ''' returns path list '''
+    return urlsplit(url).path[1:].split('/')
 
 
 @app.route('/')
@@ -77,6 +83,7 @@ def groups():
 
 @app.route('/groups/<int:id>')
 def group(id):
+    ''' show group '''
     group = ct_connect.get_group(id)
     group_metadata = models.GroupMetadata.query.filter_by(ct_id=id).first()
     group_heads = ct_connect.get_group_heads(id)
@@ -112,13 +119,12 @@ def group_edit(id):
 
         # if there is no group_metadata db entry define it
         if not group_metadata:
-            group_metadata = models.GroupMetadata(id)
+            group_metadata = models.GroupMetadata(ct_id=id)
             db.session.add(group_metadata)
 
         # prefill form with db data
         form = forms.EditGroupForm(
-            description=group_metadata.description,
-            group_image=group_metadata.image)
+            description=group_metadata.description)
 
         # clicked submit
         if form.validate_on_submit():
@@ -127,7 +133,10 @@ def group_edit(id):
             # save image and set the image db true
             form.group_image.data.stream.seek(0)
             try:
+                # generate uuid
                 image_uuid = str(uuid.uuid4())
+
+                # resize image and save it to upload folder
                 image_resize(
                     form.group_image.data.stream,
                     os.path.join(
@@ -135,7 +144,19 @@ def group_edit(id):
                         app.config['UPLOAD_FOLDER'],
                         image_uuid + '.jpg'),
                     size=800)
-                group_metadata.image = image_uuid + '.jpg'
+
+                # generate image db entry
+                category = models.ImageCategory.query.filter_by(
+                    name='group').first()
+                uploaded_for = '/'.join(url_path_split(request.path)[:-1])
+                image = models.Image(
+                    uuid=image_uuid,
+                    upload_date=datetime.utcnow(),
+                    uploaded_for=uploaded_for,
+                    user=current_user.get_id(),
+                    category=category)
+                db.session.add(image)
+                group_metadata.image_id = image_uuid
             except:
                 pass
 

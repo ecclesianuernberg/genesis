@@ -4,8 +4,8 @@
 <div class="container">
 	<div class="jumbotron">
 		<h1 class="text-center">{{ group.bezeichnung }}</h1>
-		{% if group_metadata.image %}
-		<p class="text-center"><img src="{{ url_for('.static', filename='group_images/') }}{{ group_metadata.image }}" class="img-responsive img-thumbnail"></p>
+		{% if group_metadata.image_id %}
+		<p class="text-center"><img src="{{ url_for('.static', filename='uploaded_images/') }}{{ group_metadata.image_id }}.jpg" class="img-responsive img-thumbnail"></p>
 		{% endif %}
 		{% if group.treffzeit %}
 		<div class="panel panel-default">

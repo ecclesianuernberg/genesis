@@ -55,5 +55,5 @@ docs/_build/
 
 # OWNSTUFF
 *.db
-app/static/group_images/*.jpg
+app/static/uploaded_images/*.jpg
 app/config.py

@@ -6,6 +6,8 @@ import models
 
 
 class MyView(ModelView):
+    column_display_pk = True
+
     def is_accessible(self):
         if current_user.is_authenticated():
             if current_user.get_id() != 'xsteadfastx@gmail.com':
@@ -18,3 +20,6 @@ class MyView(ModelView):
 
 admin = Admin(app)
 admin.add_view(MyView(models.News, db.session))
+admin.add_view(MyView(models.GroupMetadata, db.session))
+admin.add_view(MyView(models.Image, db.session))
+admin.add_view(MyView(models.ImageCategory, db.session))

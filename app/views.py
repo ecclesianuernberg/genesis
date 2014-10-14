@@ -1,5 +1,5 @@
 from datetime import datetime
-from urlparse import urljoin, urlsplit
+from urlparse import urljoin
 from passlib.hash import bcrypt
 from PIL import Image
 from app import app, db
@@ -25,9 +25,10 @@ def make_external(url):
     return urljoin(request.url_root, url)
 
 
-def url_path_split(url):
-    ''' returns path list '''
-    return urlsplit(url).path[1:].split('/')
+def image_resize(in_file, out_file, size=800):
+    img = Image.open(in_file)
+    img.thumbnail((size, size), Image.ANTIALIAS)
+    img.save(out_file)
 
 
 @app.route('/')
@@ -95,12 +96,6 @@ def group(id):
                                '/groups/{}/edit'.format(id)))
 
 
-def image_resize(in_file, out_file, size=800):
-    img = Image.open(in_file)
-    img.thumbnail((size, size), Image.ANTIALIAS)
-    img.save(out_file)
-
-
 @app.route('/groups/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def group_edit(id):
@@ -146,15 +141,11 @@ def group_edit(id):
                     size=800)
 
                 # generate image db entry
-                category = models.ImageCategory.query.filter_by(
-                    name='group').first()
-                uploaded_for = '/'.join(url_path_split(request.path)[:-1])
                 image = models.Image(
                     uuid=image_uuid,
                     upload_date=datetime.utcnow(),
-                    uploaded_for=uploaded_for,
-                    user=current_user.get_id(),
-                    category=category)
+                    upload_to=request.path,
+                    user=current_user.get_id())
                 db.session.add(image)
                 group_metadata.image_id = image_uuid
             except:

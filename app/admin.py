@@ -7,6 +7,7 @@ import models
 
 class MyView(ModelView):
     column_display_pk = True
+    column_display_all_relations = True
 
     def is_accessible(self):
         if current_user.is_authenticated():
@@ -22,4 +23,3 @@ admin = Admin(app)
 admin.add_view(MyView(models.News, db.session))
 admin.add_view(MyView(models.GroupMetadata, db.session))
 admin.add_view(MyView(models.Image, db.session))
-admin.add_view(MyView(models.ImageCategory, db.session))

@@ -28,7 +28,7 @@ class News(db.Model):
 
 class GroupMetadata(db.Model):
     __tablename__ = 'group_metadata'
-    ct_id = db.Column(db.Integer, primary_key=True, unique=True)
+    ct_id = db.Column(db.Integer, primary_key=True)
     image_id = db.Column(db.String(120), db.ForeignKey('images.uuid'))
     image = db.relationship(
         'Image',
@@ -68,3 +68,30 @@ class Image(db.Model):
 
     def __unicode__(self):
         return unicode(self.uuid)
+
+
+class Prayer(db.Model):
+    __tablename__ = 'prayers'
+    id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.String(120))
+    show_user = db.Column(db.Boolean())
+    active = db.Column(db.Boolean())
+    pub_date = db.Column(db.DateTime())
+    body = db.Column(db.String(700))
+
+    def __init__(self,
+                 user='',
+                 show_user='',
+                 active='',
+                 pub_date='',
+                 body=''):
+        self.user = user
+        self.show_user = show_user
+        self.active = active
+        self.pub_date = pub_date
+        self.body = body
+
+    def __repr__(self):
+        return '<Prayer: user=%r, pub_date=%r>' % (
+            self.user,
+            self.pub_date)

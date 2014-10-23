@@ -1,9 +1,11 @@
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.login import LoginManager, current_user
+from flask.ext.login import LoginManager
 from flask.ext.migrate import Migrate
-from flask_bootstrap import Bootstrap
+from flask_bootstrap import Bootstrap, WebCDN
 from flask.ext.misaka import Misaka
+from flask.ext.moment import Moment
+from flask.ext.pagedown import PageDown
 import config
 
 
@@ -12,9 +14,14 @@ app.config.from_object(config.DevelopmentConfig)
 
 # Bootstrap
 Bootstrap(app)
+app.extensions['bootstrap']['cdns']['jquery'] = WebCDN(
+    '//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/')
 
 # Misaka Markdown
 Misaka(app)
+
+# Moment.js
+moment = Moment(app)
 
 # SQL stuff
 db = SQLAlchemy(app)
@@ -22,6 +29,8 @@ db = SQLAlchemy(app)
 # Migrate
 migrate = Migrate(app, db)
 
+# PageDown Editor
+pagedown = PageDown(app)
 
 # Login
 login_manager = LoginManager()

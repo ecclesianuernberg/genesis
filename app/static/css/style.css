@@ -2,6 +2,16 @@ body {
 	padding-top: 20px;
 	padding-bottom: 20px;
 }
+h1 {
+	font-size: 63px;
+	text-align: center;
+	color: #555;
+}
+.container p {
+	margin-bottom: 15px;
+	font-size: 21px;
+	font-weight: 200;
+}
 .navbar .brand {
 	max-height: 40px;
 	overflow: visible;
@@ -55,4 +65,22 @@ img.full-width {
 }
 .jumbotron .container {
       	max-width: 100%;
+}
+.flask-pagedown-preview {
+	border-style: solid;
+	border-width: 0px 1px 4px;
+	background-color: #F8F8F8;
+	border-color: #E7E7E7;
+	border-top-color: #E7E7E7;
+	border-right-color-value: rgb(231, 231, 231);
+	border-bottom-color: #E7E7E7;
+	border-left-color-value: rgb(231, 231, 231);
+	border-left-color-ltr-source: physical;
+	border-left-color-rtl-source: physical;
+	border-right-color-ltr-source: physical;
+	border-right-color-rtl-source: physical;
+}
+.footer {
+	font-size: 85%;
+	text-align: center;
 }

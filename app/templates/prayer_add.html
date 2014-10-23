@@ -3,8 +3,8 @@
 
 {% block content %}
 <div class="container">
-	<h1>{{ group.bezeichnung }} <small>bearbeiten</small></h1>
-	{{ wtf.quick_form(form, button_map={'submit': 'primary'}, enctype='multipart/form-data') }}
+	<h1><small>mein</small> Gebetsanliegen <small>einreichen</small></h1>
+	{{ wtf.quick_form(form, button_map={'submit': 'primary'}) }}
 </div>
 {{ super() }}
 {% endblock %}

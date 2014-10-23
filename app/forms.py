@@ -3,11 +3,12 @@ from flask_wtf.file import (
     FileField,
     FileAllowed)
 from wtforms import (
+    BooleanField,
     StringField,
-    TextAreaField,
     PasswordField,
     SubmitField)
 import wtforms.validators as validators
+from flask.ext.pagedown.fields import PageDownField
 
 
 class LoginForm(Form):
@@ -22,7 +23,7 @@ class LoginForm(Form):
 
 
 class EditGroupForm(Form):
-    description = TextAreaField(
+    description = PageDownField(
         'Beschreibung',
         validators=[validators.DataRequired()])
     group_image = FileField(
@@ -64,3 +65,12 @@ class EditIndexForm(Form):
         'Dritte Reihe Rechts Link',
         validators=[validators.DataRequired(),
                     validators.URL(require_tld=True)])
+
+
+class AddPrayerForm(Form):
+    body = PageDownField(
+        '',
+        validators=[validators.DataRequired()])
+    show_user = BooleanField('Name anzeigen')
+    active = BooleanField('Aktiv')
+    submit = SubmitField('Submit')

@@ -19,6 +19,7 @@ from . import auth
 from . import ct_connect
 import os.path
 import uuid
+import random
 
 
 def make_external(url):
@@ -158,3 +159,38 @@ def group_edit(id):
         'group_edit.html',
         group=group,
         form=form)
+
+
+@app.route('/prayer')
+def prayer():
+    ''' show random prayer '''
+    prayers = models.Prayer.query.filter_by(active=True).all()
+    random_prayer = random.choice(prayers)
+    user = ct_connect.get_person(random_prayer.user)
+    return render_template('prayer.html',
+                           random_prayer=random_prayer,
+                           user=user)
+
+
+@app.route('/prayer/add', methods=['GET', 'POST'])
+def prayer_add():
+    form = forms.AddPrayerForm(active=True)
+    if form.validate_on_submit():
+        prayer = models.Prayer(user=current_user.get_id(),
+                               show_user=form.show_user.data,
+                               active=form.active.data,
+                               pub_date=datetime.utcnow(),
+                               body=form.body.data)
+        db.session.add(prayer)
+        db.session.commit()
+        return redirect(url_for('prayer'))
+    return render_template('prayer_add.html', form=form)
+
+
+@app.route('/prayer/mine')
+@login_required
+def prayer_mine():
+    prayers = models.Prayer.query.filter_by(
+        user=current_user.get_id()).order_by(
+            models.Prayer.pub_date.desc()).all()
+    return render_template('prayer_mine.html', prayers=prayers)

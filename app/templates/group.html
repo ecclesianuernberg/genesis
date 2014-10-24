@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container">
-	<h1 class="text-center">{{ group.bezeichnung }}</h1>
+	<h1 class="text-center">{{ group.bezeichnung.split('-')[-1] }}</h1>
 	{% if group_metadata.image_id %}
 	<p class="text-center"><img src="{{ url_for('.static', filename='uploaded_images/') }}{{ group_metadata.image_id }}.jpg" class="img-responsive img-thumbnail"></p>
 	{% endif %}

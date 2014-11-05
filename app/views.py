@@ -1,8 +1,8 @@
+from app import app, db
 from datetime import datetime
 from urlparse import urljoin
 from passlib.hash import bcrypt
 from PIL import Image
-from app import app, db
 from flask import (
     render_template,
     redirect,
@@ -13,10 +13,11 @@ from flask.ext.login import (
     logout_user,
     login_required,
     current_user)
-from . import forms
-from . import models
-from . import auth
-from . import ct_connect
+from . import (
+    forms,
+    models,
+    auth,
+    ct_connect)
 import os.path
 import uuid
 import random
@@ -53,7 +54,7 @@ def login():
         email = form.email.data
         password = form.password.data
         user_obj = auth.CTUser(uid=email, password=password)
-        user = user_obj.get_user(email)
+        user = user_obj.get_user()
         if user and bcrypt.verify(
                 password, user.password) and user.is_active():
             if login_user(user, remember=True):
@@ -100,72 +101,77 @@ def group(id):
 @app.route('/groups/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def group_edit(id):
-    # if not the head of the group redirect back
-    heads = ct_connect.get_group_heads(id)
-    is_head = any(head.email == current_user.get_id() for head in heads)
+    auth.head_of_group_or_403(id)
 
-    if not is_head:
+    # get group
+    group = ct_connect.get_group(id)
+
+    # get metadata
+    group_metadata = models.GroupMetadata.query.filter_by(ct_id=id).first()
+
+    # if there is no group_metadata db entry define it
+    if not group_metadata:
+        group_metadata = models.GroupMetadata(ct_id=id)
+        db.session.add(group_metadata)
+
+    # prefill form with db data
+    form = forms.EditGroupForm(
+        description=group_metadata.description)
+
+    # clicked submit
+    if form.validate_on_submit():
+        group_metadata.description = form.description.data
+
+        # save image and set the image db true
+        form.group_image.data.stream.seek(0)
+        try:
+            # generate uuid
+            image_uuid = str(uuid.uuid4())
+
+            # resize image and save it to upload folder
+            image_resize(
+                form.group_image.data.stream,
+                os.path.join(
+                    app.root_path,
+                    app.config['UPLOAD_FOLDER'],
+                    image_uuid + '.jpg'),
+                size=800)
+
+            # generate image db entry
+            image = models.Image(
+                uuid=image_uuid,
+                upload_date=datetime.utcnow(),
+                upload_to=request.path,
+                user=current_user.get_id())
+            db.session.add(image)
+            group_metadata.image_id = image_uuid
+        except:
+            pass
+
+        # save to db
+        db.session.commit()
         return redirect(url_for('group', id=id))
-    else:
-        # get group
-        group = ct_connect.get_group(id)
 
-        # get metadata
-        group_metadata = models.GroupMetadata.query.filter_by(ct_id=id).first()
-
-        # if there is no group_metadata db entry define it
-        if not group_metadata:
-            group_metadata = models.GroupMetadata(ct_id=id)
-            db.session.add(group_metadata)
-
-        # prefill form with db data
-        form = forms.EditGroupForm(
-            description=group_metadata.description)
-
-        # clicked submit
-        if form.validate_on_submit():
-            group_metadata.description = form.description.data
-
-            # save image and set the image db true
-            form.group_image.data.stream.seek(0)
-            try:
-                # generate uuid
-                image_uuid = str(uuid.uuid4())
-
-                # resize image and save it to upload folder
-                image_resize(
-                    form.group_image.data.stream,
-                    os.path.join(
-                        app.root_path,
-                        app.config['UPLOAD_FOLDER'],
-                        image_uuid + '.jpg'),
-                    size=800)
-
-                # generate image db entry
-                image = models.Image(
-                    uuid=image_uuid,
-                    upload_date=datetime.utcnow(),
-                    upload_to=request.path,
-                    user=current_user.get_id())
-                db.session.add(image)
-                group_metadata.image_id = image_uuid
-            except:
-                pass
-
-            # save to db
-            db.session.commit()
-            return redirect(url_for('group', id=id))
     return render_template(
         'group_edit.html',
         group=group,
         form=form)
 
 
+def get_random_prayer():
+    ''' returns a random still active prayer '''
+    prayers = models.Prayer.query.filter_by(active=True).all()
+    return random.choice(prayers)
+
+
+def get_prayer(id):
+    return models.Prayer.query.get(id)
+
+
 @app.route('/prayer')
 def prayer():
     ''' show random prayer '''
-    prayers = models.Prayer.query.filter_by(active=True).all()
-    random_prayer = random.choice(prayers)
+    random_prayer = get_random_prayer()
     user = ct_connect.get_person(random_prayer.user)
     return render_template('prayer.html',
                            random_prayer=random_prayer,

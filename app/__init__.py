@@ -6,6 +6,8 @@ from flask_bootstrap import Bootstrap, WebCDN
 from flask.ext.misaka import Misaka
 from flask.ext.moment import Moment
 from flask.ext.pagedown import PageDown
+from flask.ext.restful import Api
+from flask.ext.httpauth import HTTPBasicAuth
 import config
 
 
@@ -32,6 +34,12 @@ migrate = Migrate(app, db)
 # PageDown Editor
 pagedown = PageDown(app)
 
+# REST API
+api = Api(app)
+
+# HTTPAuth
+basic_auth = HTTPBasicAuth()
+
 # Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -48,3 +56,4 @@ import views
 import models
 import auth
 import admin
+import api

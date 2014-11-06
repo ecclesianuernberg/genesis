@@ -8,11 +8,11 @@ from flask.ext.moment import Moment
 from flask.ext.pagedown import PageDown
 from flask.ext.restful import Api
 from flask.ext.httpauth import HTTPBasicAuth
-import config
+from config import config
 
 
 app = Flask(__name__)
-app.config.from_object(config.DevelopmentConfig)
+app.config.from_object(config['development'])
 
 # Bootstrap
 Bootstrap(app)

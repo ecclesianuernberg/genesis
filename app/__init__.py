@@ -9,10 +9,18 @@ from flask.ext.pagedown import PageDown
 from flask.ext.restful import Api
 from flask.ext.httpauth import HTTPBasicAuth
 from config import config
+import os
 
 
 app = Flask(__name__)
-app.config.from_object(config['development'])
+
+# config handling
+if os.getenv('FLASK_CONFIG'):
+    flask_config = os.getenv('FLASK_CONFIG')
+else:
+    flask_config = 'default'
+
+app.config.from_object(config[flask_config])
 
 # Bootstrap
 Bootstrap(app)

@@ -2,6 +2,16 @@
 
 {% block content %}
 <div class="container">
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+			<div class="alert alert-{{ category }}">
+				<button type="button" class="close" data-dismiss="alert">&times;</button>
+				<strong>{{ message }}</strong>
+			</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
 	<div class="row top-buffer">
 		<div class="col-xs-12">
 			<img src="{{ url_for('static', filename="images/front_first_row.jpg") }}" class="img-responsive full-width">

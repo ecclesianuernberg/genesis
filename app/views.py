@@ -7,7 +7,8 @@ from flask import (
     render_template,
     redirect,
     request,
-    url_for)
+    url_for,
+    flash)
 from flask.ext.login import (
     login_user,
     logout_user,
@@ -58,10 +59,13 @@ def login():
         if user and bcrypt.verify(
                 password, user.password) and user.is_active():
             if login_user(user, remember=True):
+                flash('Erfolgreich eingeloggt!', 'success')
                 return redirect(url_for('index'))
             else:
+                flash('Konnte nicht eingeloggt werden!', 'danger')
                 return redirect(url_for('login'))
         else:
+            flash('Konnte nicht eingeloggt werden!', 'danger')
             return redirect(url_for('login'))
     return render_template('login.html', form=form)
 
@@ -69,6 +73,7 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
+    flash('Erfolgreich ausgeloggt!', 'success')
     return redirect(url_for('index'))
 
 
@@ -169,6 +174,7 @@ def get_prayer(id):
 
 
 @app.route('/prayer')
+@login_required
 def prayer():
     ''' show random prayer '''
     random_prayer = get_random_prayer()
@@ -179,6 +185,7 @@ def prayer():
 
 
 @app.route('/prayer/add', methods=['GET', 'POST'])
+@login_required
 def prayer_add():
     form = forms.AddPrayerForm(active=True)
     if form.validate_on_submit():
@@ -189,6 +196,7 @@ def prayer_add():
                                body=form.body.data)
         db.session.add(prayer)
         db.session.commit()
+        flash('Gebetsanliegen abgeschickt!', 'success')
         return redirect(url_for('prayer'))
     return render_template('prayer_add.html', form=form)
 

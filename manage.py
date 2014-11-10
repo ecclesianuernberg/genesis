@@ -10,6 +10,14 @@ from app import app
 server = Server(host=app.config['HOST'])
 manager = Manager(app)
 
+
+@manager.command
+def testing():
+    ''' Run tests '''
+    import pytest
+    pytest.main(['-v', '-s'])
+
+
 manager.add_command('runserver', server)
 manager.add_command('db', MigrateCommand)
 

@@ -208,3 +208,28 @@ def prayer_mine():
         user=current_user.get_id()).order_by(
             models.Prayer.pub_date.desc()).all()
     return render_template('prayer_mine.html', prayers=prayers)
+
+
+@app.route('/prayer/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def prayer_edit(id):
+    auth.prayer_owner_or_403(id)
+
+    prayer = get_prayer(id)
+    form = forms.EditPrayerForm(body=prayer.body,
+                                show_user=prayer.show_user,
+                                active=prayer.active)
+
+    if form.validate_on_submit():
+        prayer.body = form.body.data
+        prayer.show_user = form.show_user.data
+        prayer.active = form.active.data
+
+        db.session.commit()
+
+        flash('Gebetsanliegen veraendert!', 'success')
+        return redirect(url_for('prayer_mine'))
+
+    return render_template(
+        'prayer_edit.html',
+        form=form)

@@ -38,6 +38,14 @@ class Helper(object):
                                               'active': True}),
                              content_type='application/json')
 
+    def edit_prayer(self, id, body, active, show_user):
+        ''' helper to edit a prayer '''
+        return self.app.post('/prayer/{}/edit'.format(id),
+                             data={'body': body,
+                                   'active': active,
+                                   'show_user': show_user},
+                             follow_redirects=True)
+
     def edit_prayer_api(self, id, body, creds, active, show_user):
         ''' helper to add a new prayer '''
         return self.app.put('/api/prayer/{}'.format(id),
@@ -191,6 +199,18 @@ class TestGenesis(Helper):
         assert 'Gebetsanliegen abgeschickt!' in rv.data
         assert prayer in rv.data
 
+    def test_edit_prayer(self):
+        ''' editing prayer '''
+        self.login(app.app.config['TEST_USER']['user'],
+                   app.app.config['TEST_USER']['password'])
+
+        prayer = 'Neues Anliegen'
+        rv = self.edit_prayer(1, prayer, True, False)
+
+        assert rv.status_code == 200
+        assert 'Gebetsanliegen veraendert!' in rv.data
+        assert prayer in rv.data
+
     def test_group_edit_forbidden_logged_in(self):
         ''' logged in user cant access groups edit pages '''
         urls = ['/groups/{}/edit'.format(group.id)
@@ -290,9 +310,7 @@ class TestGenesis(Helper):
         data_dict = json.loads(rv.data)
 
         assert data_dict.get('name') == 'anonym'
-
         assert data_dict.get('id') == 2
-
         assert data_dict.get('prayer') == 'Test'
 
         # wrong password
@@ -316,9 +334,7 @@ class TestGenesis(Helper):
         data_dict = json.loads(rv.data)
 
         assert data_dict.get('name') == 'anonym'
-
         assert data_dict.get('id') == 2
-
         assert data_dict.get('prayer') == 'Noch ein Test'
 
         # wrong password

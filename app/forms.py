@@ -74,3 +74,12 @@ class AddPrayerForm(Form):
     show_user = BooleanField('Name anzeigen')
     active = BooleanField('Aktiv')
     submit = SubmitField('Submit')
+
+
+class EditPrayerForm(Form):
+    body = PageDownField(
+        '',
+        validators=[validators.DataRequired()])
+    show_user = BooleanField('Name anzeigen')
+    active = BooleanField('Aktiv')
+    submit = SubmitField('Submit')

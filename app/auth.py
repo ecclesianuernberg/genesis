@@ -96,5 +96,5 @@ def prayer_owner_or_403(prayer_id):
         if prayer.user != g.user.username:
             abort_rest(403)
     else:
-        if prayer.user is not current_user.get_id():
+        if prayer.user != current_user.get_id():
             abort(403)

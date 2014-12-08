@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block content %}
 <div class="container">
@@ -12,21 +13,13 @@
 			{% endfor %}
 		{% endif %}
 	{% endwith %}
-	<h1 class="text-center"><small>meine</small> Gebetsanliegen</h1>
-	{% for prayer in prayers %}
-	<div class="panel panel-default">
-		<div class="panel-heading">{{ moment(prayer.pub_date).fromNow() }}</div>
-		<div class="panel-body">
-			{{ prayer.body|markdown }}
-			<p class="text-right"><small><a href="{{ url_for('prayer_edit', id=prayer.id) }}">edit</a></small></p>
-		</div>
-	</div>
-	{% endfor %}
+	<h1><small>mein</small> Gebetsanliegen <small>ver&auml;ndern</small></h1>
+	{{ wtf.quick_form(form, button_map={'submit': 'primary'}) }}
 </div>
 {{ super() }}
 {% endblock %}
 
 {% block scripts %}
 	{{ super() }}
-	{{ moment.include_moment() }}
+	{{ pagedown.html_head() }}
 {% endblock %}

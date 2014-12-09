@@ -166,7 +166,10 @@ def group_edit(id):
 def get_random_prayer():
     ''' returns a random still active prayer '''
     prayers = models.Prayer.query.filter_by(active=True).all()
-    return random.choice(prayers)
+    if len(prayers) > 0:
+        return random.choice(prayers)
+    else:
+        return None
 
 
 def get_prayer(id):
@@ -178,7 +181,10 @@ def get_prayer(id):
 def prayer():
     ''' show random prayer '''
     random_prayer = get_random_prayer()
-    user = ct_connect.get_person(random_prayer.user)
+    if random_prayer is not None:
+        user = ct_connect.get_person(random_prayer.user)
+    else:
+        user = None
     return render_template('prayer.html',
                            random_prayer=random_prayer,
                            user=user)

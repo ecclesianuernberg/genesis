@@ -28,7 +28,9 @@ class Helper(object):
     def add_prayer(self, body):
         ''' helper to add a new prayer '''
         return self.app.post('/prayer/add', data={
-            'body': body, 'active': True}, follow_redirects=True)
+            'body': body,
+            'active': True,
+            'show_user': True}, follow_redirects=True)
 
     def add_prayer_api(self, body, creds):
         ''' helper to add a new prayer '''
@@ -38,13 +40,10 @@ class Helper(object):
                                               'active': True}),
                              content_type='application/json')
 
-    def edit_prayer(self, id, body, active, show_user):
+    def edit_prayer(self, id, body):
         ''' helper to edit a prayer '''
         return self.app.post('/prayer/{}/edit'.format(id),
-                             data={'body': body,
-                                   'active': active,
-                                   'show_user': show_user},
-                             follow_redirects=True)
+                             data={'body': body}, follow_redirects=True)
 
     def edit_prayer_api(self, id, body, creds, active, show_user):
         ''' helper to add a new prayer '''
@@ -199,17 +198,31 @@ class TestGenesis(Helper):
         assert 'Gebetsanliegen abgeschickt!' in rv.data
         assert prayer in rv.data
 
+        # check db entry
+        db_entry = app.views.get_prayer(1)
+
+        assert db_entry.body == prayer
+        assert db_entry.active is True
+        assert db_entry.show_user is True
+
     def test_edit_prayer(self):
         ''' editing prayer '''
         self.login(app.app.config['TEST_USER']['user'],
                    app.app.config['TEST_USER']['password'])
 
         prayer = 'Neues Anliegen'
-        rv = self.edit_prayer(1, prayer, True, False)
+        rv = self.edit_prayer(1, prayer)
 
         assert rv.status_code == 200
         assert 'Gebetsanliegen veraendert!' in rv.data
         assert prayer in rv.data
+
+        # check db entry
+        db_entry = app.views.get_prayer(1)
+
+        assert db_entry.body == prayer
+        assert db_entry.active is False
+        assert db_entry.show_user is False
 
     def test_group_edit_forbidden_logged_in(self):
         ''' logged in user cant access groups edit pages '''

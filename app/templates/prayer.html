@@ -13,6 +13,7 @@
 		{% endif %}
 	{% endwith %}
 	<h1><small>f&uuml;r</small> Anliegen <small>beten</small></h1>
+  {% if random_prayer is not none %}
 	<div class="panel panel-default">
 		{% if random_prayer.show_user %}
 		<div class="panel-heading">{{ user.vorname }} {{ user.name }}</div>
@@ -24,6 +25,9 @@
 		</div>
 	</div>
 	<p><a class="btn btn-primary btn-lg pull-right" role="button" href="{{ url_for('.prayer') }}">Neues Anliegen</a></p>
+  {% else %}
+  <p>Keine Gebetsanliegen</p>
+  {% endif %}
 </div>
 {{ super() }}
 {% endblock %}

@@ -83,6 +83,7 @@ def news():
 
 
 @app.route('/groups')
+@login_required
 def groups():
     ''' groups overview '''
     groups = ct_connect.get_active_groups()

@@ -186,6 +186,21 @@ class TestGenesis(Helper):
         assert rv.vorname == u'Test'
         assert rv.email == u'test.leiter@ecclesianuernberg.de'
 
+    def test_access_prayer(self):
+        ''' access to random prayer '''
+        # not logged in
+        rv = self.app.get('/prayer')
+
+        assert rv.status_code == 302
+
+        # logged in
+        self.login(app.app.config['TEST_USER']['user'],
+                   app.app.config['TEST_USER']['password'])
+
+        rv = self.app.get('/prayer')
+
+        assert rv.status_code == 200
+
     def test_add_prayer(self):
         ''' adding prayer '''
         self.login(app.app.config['TEST_USER']['user'],
@@ -223,6 +238,22 @@ class TestGenesis(Helper):
         assert db_entry.body == prayer
         assert db_entry.active is False
         assert db_entry.show_user is False
+
+    def test_access_group_list(self):
+        ''' access group list '''
+        # not logged in
+        rv = self.app.get('/groups')
+
+        assert rv.status_code == 302
+
+        # logged in
+
+        self.login(app.app.config['TEST_USER']['user'],
+                   app.app.config['TEST_USER']['password'])
+
+        rv = self.app.get('/groups')
+
+        assert rv.status_code == 200
 
     def test_group_edit_forbidden_logged_in(self):
         ''' logged in user cant access groups edit pages '''

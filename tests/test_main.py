@@ -54,6 +54,17 @@ class Helper(object):
                                              'show_user': show_user}),
                             content_type='application/json')
 
+    def del_prayer(self, id):
+        ''' helper to delete a prayer '''
+        return self.app.get('/prayer/{}/del'.format(id),
+                            follow_redirects=True)
+
+    def del_prayer_api(self, id, creds):
+        ''' helper to delete prayer '''
+        return self.app.delete('/api/prayer/{}'.format(id),
+                               headers={'Authorization': 'Basic ' + creds},
+                               content_type='application/json')
+
     def edit_group(self, id, description):
         ''' helper to edit group '''
         return self.app.post('/groups/{}/edit'.format(id), data={
@@ -239,6 +250,19 @@ class TestGenesis(Helper):
         assert db_entry.active is False
         assert db_entry.show_user is False
 
+    def test_del_prayer(self):
+        '''delete prayer'''
+        self.login(app.app.config['TEST_USER']['user'],
+                   app.app.config['TEST_USER']['password'])
+
+        # add prayer to delete it
+        self.add_prayer('Ein Test zum entfernen')
+
+        rv = self.del_prayer(2)
+
+        assert rv.status_code == 200
+        assert 'Gebetsanliegen entfernt!' in rv.data
+
     def test_access_group_list(self):
         ''' access group list '''
         # not logged in
@@ -387,3 +411,13 @@ class TestGenesis(Helper):
         rv = self.edit_prayer_api(2, body, creds, active, show_user)
 
         assert rv.status_code == 401
+
+    def test_api_del(self):
+        ''' delete prayer through api '''
+        creds = self.create_api_creds()
+
+        rv = self.del_prayer_api(2, creds)
+        assert rv.status_code == 204
+
+        rv = self.del_prayer_api(20, creds)
+        assert rv.status_code == 404

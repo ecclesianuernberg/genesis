@@ -15,6 +15,9 @@
 	{% endwith %}
 	<h1><small>mein</small> Gebetsanliegen <small>ver&auml;ndern</small></h1>
 	{{ wtf.quick_form(form, button_map={'submit': 'primary'}) }}
+	<p class="text-right">
+	<a href="{{ url_for('prayer_del', id=id) }}"><button type="button" class="btn btn-danger btn-xs">delete</button></a>
+	</p>
 </div>
 {{ super() }}
 {% endblock %}

@@ -5,7 +5,8 @@ from flask.ext.restful import (
     Resource,
     reqparse,
     fields,
-    marshal_with)
+    marshal_with,
+    abort)
 from unidecode import unidecode
 from . import (
     ct_connect,
@@ -150,6 +151,19 @@ class PrayerAPIEdit(Resource):
                             name=name,
                             id=prayer.id,
                             pub_date=prayer.pub_date)
+
+    @basic_auth.login_required
+    def delete(self, id):
+        prayer = get_prayer(id)
+
+        if prayer:
+            prayer_owner_or_403(id)
+            db.session.delete(prayer)
+            db.session.commit()
+
+            return '', 204
+        else:
+            abort(404)
 
 
 api.add_resource(

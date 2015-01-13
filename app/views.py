@@ -239,4 +239,22 @@ def prayer_edit(id):
 
     return render_template(
         'prayer_edit.html',
+        id=id,
         form=form)
+
+
+@app.route('/prayer/<int:id>/del')
+@login_required
+def prayer_del(id):
+    auth.prayer_owner_or_403(id)
+
+    prayer = get_prayer(id)
+
+    try:
+        db.session.delete(prayer)
+        db.session.commit()
+        flash('Gebetsanliegen entfernt!', 'success')
+        return redirect(url_for('prayer_mine'))
+    except:
+        flash('Gebetsanliegen konnte nicht entfernt werden!', 'danger')
+        return redirect(url_for('prayer_mine'))

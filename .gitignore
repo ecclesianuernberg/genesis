@@ -34,6 +34,9 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+junit-*.xml
+pep8.out
+pylint.out
 
 # Translations
 *.mo

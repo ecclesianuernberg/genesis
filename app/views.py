@@ -204,7 +204,7 @@ def prayer_add():
         db.session.add(prayer)
         db.session.commit()
         flash('Gebetsanliegen abgeschickt!', 'success')
-        return redirect(url_for('prayer'))
+        return redirect(url_for('prayer_mine'))
     return render_template('prayer_add.html', form=form)
 
 

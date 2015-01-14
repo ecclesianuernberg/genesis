@@ -56,12 +56,10 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(userid):
+    import auth
     return auth.CTUser(uid=userid)
 
 
 # import
 import views
-import models
-import auth
-import admin
 import api

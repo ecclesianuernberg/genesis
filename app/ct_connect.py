@@ -3,15 +3,17 @@ from sqlalchemy import (
     create_engine,
     MetaData,
     Table)
-from sqlalchemy.orm import create_session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from passlib.hash import bcrypt
 
 
 URI = app.config['SQLALCHEMY_CT_DATABASE_URI']
 BASE = declarative_base()
 ENGINE = create_engine(URI, echo=False)
 METADATA = MetaData(bind=ENGINE)
-SESSION = create_session(bind=ENGINE)
+Session = sessionmaker(bind=ENGINE)
+SESSION = Session()
 
 
 class Person(BASE):
@@ -52,7 +54,13 @@ class GroupMemberStatus(BASE):
 def get_person(email):
     return SESSION.query(
         Person).filter(
-            Person.email == email).first()
+            Person.email == email).all()
+
+
+def get_person_from_id(id):
+    return SESSION.query(
+        Person).filter(
+            Person.id == id).all()
 
 
 def get_active_groups():
@@ -90,3 +98,10 @@ def get_person_from_communityperson(id):
         CommunityPerson,
         Person.id == CommunityPerson.person_id).filter(
             CommunityPerson.person_id == id).first()
+
+
+def change_user_password(id, password):
+    user = get_person_from_id(id)[0]
+    user.password = bcrypt.encrypt(password)
+    SESSION.add(user)
+    SESSION.commit()

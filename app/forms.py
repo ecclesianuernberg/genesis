@@ -83,3 +83,29 @@ class EditPrayerForm(Form):
     show_user = BooleanField('Name anzeigen')
     active = BooleanField('Aktiv')
     submit = SubmitField('Submit')
+
+
+class EditProfileForm(Form):
+    # churchtools
+    password = PasswordField(
+        'Neues Password',
+        validators=[validators.EqualTo('confirm')])
+    confirm = PasswordField(
+        'Confirm Password')
+    street = StringField('Strasse')
+    postal_code = StringField('PLZ')
+    city = StringField('Ort')
+
+    # metadata
+    bio = PageDownField(
+        'Bio')
+    user_image = FileField(
+        'Bild',
+        validators=[FileAllowed(['jpg'], 'Nur JPGs')])
+    twitter = StringField(
+        'Twitter',
+        validators=[validators.URL()])
+    facebook = StringField(
+        'Facebook',
+        validators=[validators.URL()])
+    submit = SubmitField('Submit')

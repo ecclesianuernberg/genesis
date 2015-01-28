@@ -1,5 +1,5 @@
 from app import app, basic_auth
-from flask import abort, g, request
+from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
 from itsdangerous import (
@@ -8,6 +8,20 @@ from itsdangerous import (
     BadSignature)
 from passlib.hash import bcrypt
 from . import ct_connect
+
+
+def persons(user):
+    ''' create a dict with all person data that matches
+    the logged in email adress. '''
+    person_list = []
+    for person in user:
+        person_list.append({'email': person.email,
+                            'password': person.password,
+                            'id': person.id,
+                            'vorname': person.vorname,
+                            'name': person.name})
+
+    return person_list
 
 
 class CTUser(UserMixin):
@@ -20,8 +34,7 @@ class CTUser(UserMixin):
         try:
             user = ct_connect.get_person(self.id)
             if user:
-                self.username = user.email
-                self.password = user.password
+                self.persons = persons(user)
                 return self
             else:
                 return None
@@ -51,6 +64,14 @@ class CTUser(UserMixin):
         return user.get_user()
 
 
+def get_valid_users(user, password):
+    ''' creates a list of valid users from user object and given password '''
+    return [person
+            for person in user.persons
+            if person['password']
+            if bcrypt.verify(password, person['password'])]
+
+
 @basic_auth.verify_password
 def verify_password(email_or_token, password):
     ''' basic auth used for api '''
@@ -60,9 +81,9 @@ def verify_password(email_or_token, password):
     if not user:
         user_obj = CTUser(uid=email_or_token, password=password)
         user = user_obj.get_user()
+        valid_user = get_valid_users(user, password)
 
-        if not user or \
-           not bcrypt.verify(password, user.password) or \
+        if not valid_user or \
            not user.is_active():
             return False
 
@@ -93,8 +114,14 @@ def prayer_owner_or_403(prayer_id):
 
     prayer = get_prayer(prayer_id)
     if '/api/' in request.path:
-        if prayer.user != g.user.username:
+        if prayer.user != g.user.id:
             abort_rest(403)
     else:
         if prayer.user != current_user.get_id():
             abort(403)
+
+
+def own_profile_or_403(user_id):
+    ''' allowed to view own profile edit form else abort it '''
+    if session['user'][0]['id'] != user_id:
+        abort(403)

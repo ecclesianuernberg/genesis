@@ -46,6 +46,28 @@ class GroupMetadata(db.Model):
         return unicode(self.ct_id)
 
 
+class UserMetadata(db.Model):
+    __tablename__ = 'user_metadata'
+    ct_id = db.Column(db.Integer, primary_key=True)
+    image_id = db.Column(db.String(120), db.ForeignKey('images.uuid'))
+    image = db.relationship(
+        'Image',
+        backref=db.backref('user_profile',
+                           uselist=False))
+    bio = db.Column(db.String(700))
+    twitter = db.Column(db.String(120))
+    facebook = db.Column(db.String(120))
+
+    def __init__(self, ct_id=''):
+        self.ct_id = ct_id
+
+    def __repr__(self):
+        return '<UserMetadata %r>' % self.ct_id
+
+    def __unicode__(self):
+        return unicode(self.ct_id)
+
+
 class Image(db.Model):
     __tablename__ = 'images'
     uuid = db.Column(db.String(120), primary_key=True)

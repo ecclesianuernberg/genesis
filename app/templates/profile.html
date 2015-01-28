@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+			<div class="alert alert-{{ category }}">
+				<button type="button" class="close" data-dismiss="alert">&times;</button>
+				<strong>{{ message }}</strong>
+			</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
+	<p class="text-center">
+		{% if user_metadata.image_id %}
+		<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ user_metadata.image_id }}.jpg" class="img-circle">
+		{% else %}
+		<img src="{{ url_for('.static', filename='images/avatar.png') }}" class="img-circle">
+		{% endif %}
+	</p>
+	<h1>{{ user.vorname }} {{ user.name }} {% if user.ort %}<small>{{ user.ort }}</small>{% endif %}</h1>
+	<p class="text-center">
+		<a href="mailto:{{ user.email }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
+		{% if user_metadata.twitter %}<a href="{{ user_metadata.twitter }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-twitter"></i> twitter</button></a>{% endif %}
+		{% if user_metadata.facebook %}<a href="{{ user_metadata.facebook }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-facebook"></i> facebook</button></a>{% endif %}
+		{% if session.user[0].id == user.id %}<a href="{{ url_for('profile_edit', id=user.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-pencil"></i> edit</button></a>{% endif %}
+	</p>
+	{% if user_metadata.bio %}
+	{{ user_metadata.bio|markdown  }}
+	{% endif %}
+</div>
+{{ super() }}
+{% endblock %}

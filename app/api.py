@@ -86,7 +86,7 @@ class PrayerAPI(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         prayer = models.Prayer(
-            user=g.user.username,
+            user=g.user.id,
             show_user=args['show_user'],
             active=True,
             pub_date=datetime.utcnow(),

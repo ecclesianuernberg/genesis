@@ -25,7 +25,9 @@
 							<li><a href="{{ url_for('.prayer_mine') }}">Meine Anliegen</a></li>
 						</ul>
 				</li>
+
         <li><a href="#">TERMINE</a></li>
+
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">KLEINGRUPPEN<span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
@@ -33,8 +35,18 @@
 						<li><a href="{{ url_for('.groups') }}">&Uuml;bersicht</a></li>
           </ul>
         </li>
-        <li><a href="#">PREDIGTEN</a></li>
-        <li><a href="#">KONTAKT</a></li>
+
+				{% if current_user.is_authenticated() %}
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">PROFIL<span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu">
+						{% for user in session.user %}
+						<li><a href="{{ url_for('profile', id=user.id) }}">{{ user.vorname }} {{ user.name }}</a></li>
+						{% endfor %}
+          </ul>
+        </li>
+				{% endif %}
+
       </ul>
     </div><!-- /.navbar-collapse -->
   </div><!-- /.container-fluid -->

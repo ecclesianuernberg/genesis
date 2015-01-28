@@ -1,14 +1,16 @@
 from app import app, db
 from datetime import datetime
 from urlparse import urljoin
+from PIL import Image, ImageOps
 from passlib.hash import bcrypt
-from PIL import Image
 from flask import (
     render_template,
     redirect,
     request,
     url_for,
-    flash)
+    flash,
+    session,
+    abort)
 from flask.ext.login import (
     login_user,
     logout_user,
@@ -34,6 +36,54 @@ def image_resize(in_file, out_file, size=800):
     img.save(out_file)
 
 
+def create_thumbnail(in_file, out_file):
+    size = (150, 150)
+    img = Image.open(in_file)
+    thumb = ImageOps.fit(img, size, Image.ANTIALIAS)
+    thumb.save(out_file)
+
+
+def save_image(image, request_path, user):
+    ''' saves image, creates thumbnail and save it to the db '''
+    try:
+        image_uuid = str(uuid.uuid4())
+
+        # resize image and save it to upload folder
+        image_resize(
+            image,
+            os.path.join(
+                app.root_path,
+                app.config['UPLOAD_FOLDER'],
+                image_uuid + '.jpg'),
+            size=800)
+
+        # create thumbnail
+        create_thumbnail(
+            os.path.join(
+                app.root_path,
+                app.config['UPLOAD_FOLDER'],
+                image_uuid + '.jpg'),
+            os.path.join(
+                app.root_path,
+                app.config['UPLOAD_FOLDER'],
+                image_uuid + '-thumb.jpg'))
+
+        # generate image db entry
+        image = models.Image(
+            uuid=image_uuid,
+            upload_date=datetime.utcnow(),
+            upload_to=request_path,
+            user=user)
+
+        db.session.add(image)
+        db.session.commit()
+
+        return image_uuid
+
+    except:
+        pass
+
+
 @app.route('/')
 def index():
     return render_template(
@@ -54,11 +104,16 @@ def login():
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
+
         user_obj = auth.CTUser(uid=email, password=password)
         user = user_obj.get_user()
-        if user and bcrypt.verify(
-                password, user.password) and user.is_active():
+        valid_user = auth.get_valid_users(user, password)
+
+        if valid_user and user.is_active():
             if login_user(user, remember=True):
+                # store valid user in session
+                session['user'] = valid_user
+
                 flash('Erfolgreich eingeloggt!', 'success')
                 return redirect(url_for('index'))
             else:
@@ -90,11 +145,17 @@ def groups():
     return render_template('groups.html', groups=groups)
 
 
+def get_group_metadata(id):
+    return models.GroupMetadata.query.filter_by(ct_id=id).first()
+
+
 @app.route('/groups/<int:id>')
 def group(id):
     ''' show group '''
     group = ct_connect.get_group(id)
-    group_metadata = models.GroupMetadata.query.filter_by(ct_id=id).first()
+    if not group:
+        abort(404)
+    group_metadata = get_group_metadata(id)
     group_heads = ct_connect.get_group_heads(id)
     return render_template('group.html',
                            group=group,
@@ -113,7 +174,7 @@ def group_edit(id):
     group = ct_connect.get_group(id)
 
     # get metadata
-    group_metadata = models.GroupMetadata.query.filter_by(ct_id=id).first()
+    group_metadata = get_group_metadata(id)
 
     # if there is no group_metadata db entry define it
     if not group_metadata:
@@ -126,37 +187,26 @@ def group_edit(id):
 
     # clicked submit
     if form.validate_on_submit():
-        group_metadata.description = form.description.data
-
-        # save image and set the image db true
-        form.group_image.data.stream.seek(0)
         try:
-            # generate uuid
-            image_uuid = str(uuid.uuid4())
+            group_metadata.description = form.description.data
 
-            # resize image and save it to upload folder
-            image_resize(
-                form.group_image.data.stream,
-                os.path.join(
-                    app.root_path,
-                    app.config['UPLOAD_FOLDER'],
-                    image_uuid + '.jpg'),
-                size=800)
+            # save image and set the image db true
+            form.group_image.data.stream.seek(0)
+            group_image = save_image(form.group_image.data.stream,
+                                     request_path=request.path,
+                                     user=current_user.get_id())
+            if group_image:
+                group_metadata.image_id = group_image
 
-            # generate image db entry
-            image = models.Image(
-                uuid=image_uuid,
-                upload_date=datetime.utcnow(),
-                upload_to=request.path,
-                user=current_user.get_id())
-            db.session.add(image)
-            group_metadata.image_id = image_uuid
+            # save to db
+            db.session.commit()
+
+            flash('Gruppe geaendert!', 'success')
+            return redirect(url_for('group', id=id))
+
         except:
-            pass
-
-        # save to db
-        db.session.commit()
-        return redirect(url_for('group', id=id))
+            flash('Fehler aufgetreten!', 'danger')
+            return redirect(url_for('group', id=id))
 
     return render_template(
         'group_edit.html',
@@ -258,3 +308,89 @@ def prayer_del(id):
     except:
         flash('Gebetsanliegen konnte nicht entfernt werden!', 'danger')
         return redirect(url_for('prayer_mine'))
+
+
+def get_user_metadata(id):
+    return models.UserMetadata.query.filter_by(ct_id=id).first()
+
+
+@app.route('/profile/<int:id>')
+@login_required
+def profile(id):
+    user = ct_connect.get_person_from_id(id)
+    if not user:
+        abort(404)
+    user_metadata = get_user_metadata(id)
+    return render_template('profile.html',
+                           user=user[0],
+                           user_metadata=user_metadata)
+
+
+@app.route('/profile/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def profile_edit(id):
+    auth.own_profile_or_403(id)
+
+    user = ct_connect.get_person_from_id(id)[0]
+    user_metadata = get_user_metadata(id)
+
+    # if there is no user_metadata db entry define it
+    if not user_metadata:
+        user_metadata = models.UserMetadata(ct_id=id)
+        db.session.add(user_metadata)
+
+    # try to prefill form
+    form = forms.EditProfileForm(
+        street=user.strasse,
+        postal_code=user.plz,
+        city=user.ort,
+        bio=user_metadata.bio,
+        twitter=user_metadata.twitter,
+        facebook=user_metadata.facebook)
+
+    # clicked submit
+    if form.validate_on_submit():
+        try:
+            # save image and set the image db true
+            form.user_image.data.stream.seek(0)
+
+            # metadata
+            user_image = save_image(form.user_image.data.stream,
+                                    request_path=request.path,
+                                    user=current_user.get_id())
+            if user_image:
+                user_metadata.image_id = user_image
+
+            user_metadata.bio = form.bio.data
+            user_metadata.twitter = form.twitter.data
+            user_metadata.facebook = form.facebook.data
+
+            # save metadata to metadata db
+            db.session.add(user_metadata)
+            db.session.commit()
+
+            # churchtools
+            user.strasse = form.street.data
+            user.plz = form.postal_code.data
+            user.ort = form.city.data
+
+            # password
+            if form.password.data:
+                user.password = bcrypt.encrypt(form.password.data)
+
+            # save data to churchtools db
+            ct_connect.SESSION.add(user)
+            ct_connect.SESSION.commit()
+
+            flash('Profil geaendert!', 'success')
+            return redirect(url_for('profile', id=id))
+
+        except:
+            flash('Es ist ein Fehler aufgetreten!', 'danger')
+            return redirect(url_for('profile', id=id))
+
+    return render_template(
+        'profile_edit.html',
+        user=user,
+        user_metadata=user_metadata,
+        form=form)

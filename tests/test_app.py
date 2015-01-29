@@ -790,3 +790,27 @@ def test_save_image(client, image):
 
     assert image.user == test_user['user']
     assert image.upload_to == 'test'
+
+
+@pytest.mark.parametrize('test_user, status_code',
+                         zip(TEST_USER, [200, 403, 403]))
+def test_admin_access_logged_in(client, test_user, status_code):
+    login(client, test_user['user'], test_user['password'])
+
+    for view in ['newsview',
+                 'groupmetadataview',
+                 'usermetadataview',
+                 'imageview',
+                 'prayerview']:
+        rv = client.get('/admin/{}/'.format(view))
+        assert rv.status_code == status_code
+
+
+def test_admin_access_logged_out(client):
+    for view in ['newsview',
+                 'groupmetadataview',
+                 'usermetadataview',
+                 'imageview',
+                 'prayerview']:
+        rv = client.get('/admin/{}/'.format(view))
+        assert rv.status_code == 403

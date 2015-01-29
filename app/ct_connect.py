@@ -83,6 +83,7 @@ def get_group_heads(id):
     for head in heads:
         head_list.append(
             get_person_from_communityperson(head.gemeindeperson_id))
+
     return head_list
 
 

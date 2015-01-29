@@ -23,12 +23,20 @@ class LoginForm(Form):
 
 
 class EditGroupForm(Form):
+    # churchtools
+    where = StringField('Treffpunkt')
+    when = StringField('Treffzeit')
+    audience = StringField('Zielgruppe')
+
+    # metadata
     description = PageDownField(
         'Beschreibung',
         validators=[validators.DataRequired()])
     group_image = FileField(
         'Bild',
         validators=[FileAllowed(['jpg'], 'Nur JPGs')])
+
+    # submit
     submit = SubmitField('Submit')
 
 
@@ -108,4 +116,6 @@ class EditProfileForm(Form):
     facebook = StringField(
         'Facebook',
         validators=[validators.URL()])
+
+    # submit
     submit = SubmitField('Submit')

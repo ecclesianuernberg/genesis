@@ -3,22 +3,30 @@
 {% block content %}
 <div class="container">
 	<h1>Kleingruppen</h1>
-	<table class="table">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Treffname</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for group in groups %}
-			<tr>
-				<td><a href="{{ url_for('.group', id=group.id) }}">{{ group.bezeichnung.split('-')[-1] }}</a></td>
-				<td>{{ group.treffname }}</td>
-			</tr>
-		{% endfor %}
-	</tbody>
-	</table>
+	{% for index, group in groups %}
+	<div class="panel panel-default">
+		<div class="panel-body">
+			<div class="pull-left">
+				<a href="{{ url_for('group', id=group.id) }}">
+					{% if groups_metadata[index].image_id %}
+					<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ groups_metadata[index].image_id }}-thumb.jpg" class="img-responsive img-thumbnail">
+					{% else %}
+					<img src="{{ url_for('.static', filename='images/avatar-thumb.png') }}" class="img-responsive img-thumbnail">
+					{% endif %}
+				</a>
+			</div>
+			<div class="text-center">
+				<a href="{{ url_for('group', id=group.id) }}">
+					<h2>{{ group.bezeichnung.split('-')[-1] }}{% if group.treffname %} <small>{{ group.treffname }}</small>{% endif %}</h2>
+				</a>
+				<p>
+					{% if group.treffzeit %}{{ group.treffzeit }}<br>{% endif %}
+					{% if group.treffpunkt %}{{ group.treffpunkt }}<br>{% endif %}
+				</p>
+			</div>
+		</div>
+	</div>
+	{% endfor %}
 </div>
 {{ super() }}
 {% endblock %}

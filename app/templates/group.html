@@ -12,38 +12,53 @@
 			{% endfor %}
 		{% endif %}
 	{% endwith %}
+
+	<p class="text-center">
+		{% if group_metadata.image_id %}
+		<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ group_metadata.image_id }}.jpg" class="img-responsive img-circle center-block">
+		{% else %}
+		<img src="{{ url_for('.static', filename='images/avatar.png') }}" class="img-responsive img-circle center-block">
+		{% endif %}
+	</p>
+
 	<h1 class="text-center">{{ group.bezeichnung.split('-')[-1] }}</h1>
-	{% if group_metadata.image_id %}
-	<p class="text-center"><img src="{{ url_for('.static', filename='uploaded_images/') }}{{ group_metadata.image_id }}.jpg" class="img-responsive img-thumbnail"></p>
-	{% endif %}
+	<p class="text-center">
+		<a href="mailto:foo@foo.com"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
+		{% if group_edit %}<a href="{{ url_for('group_edit', id=group.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-pencil"></i> edit</button></a>{% endif %}
+	</p>
+
 	{% if group.treffzeit %}
 	<div class="panel panel-default">
 		<div class="panel-heading">Wann</div>
 		<div class="panel-body">{{ group.treffzeit }}</div>
 	</div>
 	{% endif %}
+
 	{% if group.treffpunkt %}
 	<div class="panel panel-default">
 		<div class="panel-heading">Wo</div>
 		<div class="panel-body">{{ group.treffpunkt }}</div>
 	</div>
 	{% endif %}
+
 	{% if group.zielgruppe %}
 	<div class="panel panel-default">
 		<div class="panel-heading">Zielgruppe</div>
 		<div class="panel-body">{{ group.zielgruppe }}</div>
 	</div>
 	{% endif %}
+
 	{% if group.notiz %}
 	<div class="panel panel-default">
 		<div class="panel-heading">Notiz</div>
 		<div class="panel-body">{{ group.notiz }}</div>
 	</div>
 	{% endif %}
+
 	{% if group_metadata.description %}
 	{{ group_metadata.description|markdown }}
 	{% endif %}
-	<p><a class="btn btn-primary btn-lg pull-right" role="button">Kontakt</a></p>
+
 </div>
 {{ super() }}
 {% endblock %}

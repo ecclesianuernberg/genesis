@@ -90,6 +90,32 @@ def reset_ct_user(request):
 
             # save to db
             ct_connect.SESSION.add(user)
+
+        ct_connect.SESSION.commit()
+
+    request.addfinalizer(fin)
+    return True
+
+
+@pytest.fixture
+def reset_ct_group(request):
+    ''' reset test group data in db '''
+    # getting group out of churchtools db
+    group = ct_connect.get_group(1)
+
+    # create data store and fill it
+    group_data = {}
+    group_data['treffpunkt'] = group.treffpunkt
+    group_data['treffzeit'] = group.treffzeit
+    group_data['zielgruppe'] = group.zielgruppe
+
+    def fin():
+        group.treffpunkt = group_data['treffpunkt']
+        group.treffzeit = group_data['treffzeit']
+        group.zielgruppe = group_data['zielgruppe']
+
+        # save back to ct
+        ct_connect.SESSION.add(group)
         ct_connect.SESSION.commit()
 
     request.addfinalizer(fin)
@@ -136,12 +162,15 @@ def del_prayer(client, id):
                       follow_redirects=True)
 
 
-def edit_group(client, id, description):
+def edit_group(client, id, description='', where='', when='', audience=''):
     ''' helper to edit group '''
-    return client.post('/groups/{}/edit'.format(id), data={
+    return client.post('/group/{}/edit'.format(id), data={
         'description': description,
         'group_image': (StringIO('hi everyone'),
-                        'test.jpg')}, follow_redirects=True)
+                        'test.jpg'),
+        'where': where,
+        'when': when,
+        'audience': audience}, follow_redirects=True)
 
 
 def create_api_creds(test_user):
@@ -439,9 +468,29 @@ def test_access_group_list(client, test_user):
     assert rv.status_code == 200
 
 
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_group_list(client, test_user):
+    ''' group list data '''
+    group_data = []
+
+    # ct group data
+    for group in ct_connect.get_active_groups():
+        group_data.append(group.bezeichnung.split('-')[-1].encode('utf-8'))
+        if group.treffzeit:
+            group_data.append(group.treffzeit.encode('utf-8'))
+        if group.treffpunkt:
+            group_data.append(group.treffpunkt.encode('utf-8'))
+
+    login(client, test_user['user'], test_user['password'])
+    rv = client.get('/groups')
+
+    for data in group_data:
+        assert data in rv.data
+
+
 def test_group_edit_forbidden_logged_in(client):
     ''' logged in user cant access groups edit pages '''
-    urls = ['/groups/{}/edit'.format(group.id)
+    urls = ['/group/{}/edit'.format(group.id)
             for group in ct_connect.get_active_groups() if group.id != 1]
 
     for url in urls:
@@ -456,7 +505,7 @@ def test_group_edit_forbidden_logged_in(client):
 
 def test_group_edit_forbidden_logged_out(client):
     ''' logged out user cant access group edit pages '''
-    urls = ['/groups/{}/edit'.format(
+    urls = ['/group/{}/edit'.format(
         i.id) for i in ct_connect.get_active_groups()]
 
     for url in urls:
@@ -465,55 +514,86 @@ def test_group_edit_forbidden_logged_out(client):
         assert 'You should be redirected automatically' in rv.data
 
 
-def test_group_edit_allowed(client):
+@pytest.mark.parametrize('own_group',
+                         [i.id
+                          for i in ct_connect.get_active_groups()
+                          for j in ct_connect.get_group_heads(i.id)
+                          if j.id == 118])
+def test_group_edit_allowed(client, reset_ct_group, own_group):
     ''' user can edit groups he is head of '''
+    test_user = TEST_USER[0]
 
-    # list of active groups
-    groups = ct_connect.get_active_groups()
+    # login
+    login(client,
+          test_user['user'],
+          test_user['password'])
 
-    # list of groups the test user is head of
-    head_groups = [i.id
-                   for i in groups
-                   for j in ct_connect.get_group_heads(i.id) if j.id == 118]
+    # edit
+    rv = edit_group(client,
+                    own_group,
+                    description='Dies ist ein Test',
+                    where='In der Ecclesia',
+                    when='Jeden Sonntag',
+                    audience='Jeder')
 
-    # run tests for each group the test user is head of
-    for group in head_groups:
-        # login
-        login(client,
-              app.app.config['TEST_USER'][0]['user'],
-              app.app.config['TEST_USER'][0]['password'])
-
-        # edit
-        rv = edit_group(client, group, 'Dies ist ein Test')
-
-        assert rv.status_code == 200
-        assert 'Dies ist ein Test' in rv.data
-        assert 'Gruppe geaendert' in rv.data
+    assert rv.status_code == 200
+    assert 'Dies ist ein Test' in rv.data
+    assert 'Gruppe geaendert' in rv.data
+    assert 'In der Ecclesia' in rv.data
+    assert 'Jeden Sonntag' in rv.data
+    assert 'Jeder' in rv.data
 
 
-def test_group_edit_forbidden(client):
+@pytest.mark.parametrize(
+    'not_own_group',
+    [i.id
+     for i in ct_connect.get_active_groups()
+     if 118 not in [j.id for j in ct_connect.get_group_heads(i.id)]])
+def test_group_edit_forbidden(client, not_own_group):
     ''' user cant edit groups he isnt head of '''
-    # list of active groups
+    test_user = TEST_USER[0]
+
+    # login
+    login(client,
+          test_user['user'],
+          test_user['password'])
+
+    # edit
+    rv = edit_group(client, not_own_group, description='Dies ist ein Test')
+
+    assert rv.status_code == 403
+
+
+@pytest.mark.parametrize('test_user, allowed',
+                         zip(TEST_USER, [True, False, False]))
+def test_group_edit_button(client, test_user, allowed):
+    ''' edit button on group page '''
+    login(client, test_user['user'], test_user['password'])
+
+    rv = client.get('/group/1')
+    edit_button = 'edit' in rv.data
+
+    assert edit_button == allowed
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_group_data(client, test_user):
+    ''' group ct data and metadata on group page '''
     groups = ct_connect.get_active_groups()
+    random_group = choice(groups)
 
-    # list of groups the logged in user is not a head of
-    no_head_groups = []
-    for group in groups:
-        if 118 not in [head.id
-                       for head in ct_connect.get_group_heads(group.id)]:
-            no_head_groups.append(group.id)
+    group_ct_data = ct_connect.get_group(random_group.id)
+    # group_metadata = app.views.get_group_metadata(random_group.id)
 
-    # test it
-    for group in no_head_groups:
-        # login
-        login(client,
-              app.app.config['TEST_USER'][0]['user'],
-              app.app.config['TEST_USER'][0]['password'])
+    login(client, test_user['user'], test_user['password'])
 
-        # edit
-        rv = edit_group(client, group, 'Dies ist ein Test')
+    rv = client.get('/group/{}'.format(random_group.id))
 
-        assert rv.status_code == 403
+    assert group_ct_data.bezeichnung.split('-')[-1].encode('utf-8') in rv.data
+    if group_ct_data.treffzeit:
+        assert group_ct_data.treffzeit.encode('utf-8') in rv.data
+    if group_ct_data.treffpunkt:
+        assert group_ct_data.treffpunkt.encode('utf-8') in rv.data
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

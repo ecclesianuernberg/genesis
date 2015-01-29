@@ -1,5 +1,5 @@
 	<div class="footer">
 		<hr />
-		<p class="text-center">Impressum - Sitemap - Facebook - Twitter - {% if current_user.is_authenticated() %} <a href="{{ url_for('logout') }}">Logout</a> {% else %}<a href="{{ url_for('login') }}">Login</a>{% endif %}{% for head in group_heads %}{% if head.email == current_user.get_id() %} - <a href="{{ edit_url }}">Edit</a>{% endif %}{% endfor %}</p>
+		<p class="text-center">Impressum - Sitemap - Facebook - Twitter - {% if current_user.is_authenticated() %} <a href="{{ url_for('logout') }}">Logout</a> {% else %}<a href="{{ url_for('login') }}">Login</a>{% endif %}</p>
 		<p class="text-center">Bund kirchlicher Pfingstgemeinden (BFP) Ecclesia Verband - Copyright 2014 Ecclesia Nürnberg</p>
 	</div>

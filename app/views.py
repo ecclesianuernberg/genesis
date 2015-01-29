@@ -137,35 +137,43 @@ def news():
     pass
 
 
+def get_group_metadata(id):
+    return models.GroupMetadata.query.filter_by(ct_id=id).first()
+
+
 @app.route('/groups')
 @login_required
 def groups():
     ''' groups overview '''
     groups = ct_connect.get_active_groups()
-    return render_template('groups.html', groups=groups)
+    groups_metadata = [get_group_metadata(i.id) for i in groups]
+    return render_template('groups.html',
+                           groups=enumerate(groups),
+                           groups_metadata=groups_metadata)
 
 
-def get_group_metadata(id):
-    return models.GroupMetadata.query.filter_by(ct_id=id).first()
-
-
-@app.route('/groups/<int:id>')
+@app.route('/group/<int:id>')
 def group(id):
     ''' show group '''
     group = ct_connect.get_group(id)
     if not group:
         abort(404)
+
     group_metadata = get_group_metadata(id)
     group_heads = ct_connect.get_group_heads(id)
+
+    group_edit = False
+    if current_user.get_id() in [i.email for i in group_heads]:
+        group_edit = True
+
     return render_template('group.html',
                            group=group,
                            group_metadata=group_metadata,
                            group_heads=group_heads,
-                           edit_url=make_external(
-                               '/groups/{}/edit'.format(id)))
+                           group_edit=group_edit)
 
 
-@app.route('/groups/<int:id>/edit', methods=['GET', 'POST'])
+@app.route('/group/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def group_edit(id):
     auth.head_of_group_or_403(id)
@@ -183,11 +191,15 @@ def group_edit(id):
 
     # prefill form with db data
     form = forms.EditGroupForm(
-        description=group_metadata.description)
+        description=group_metadata.description,
+        where=group.treffpunkt,
+        when=group.treffzeit,
+        audience=group.zielgruppe)
 
     # clicked submit
     if form.validate_on_submit():
         try:
+            # metadata
             group_metadata.description = form.description.data
 
             # save image and set the image db true
@@ -198,8 +210,17 @@ def group_edit(id):
             if group_image:
                 group_metadata.image_id = group_image
 
-            # save to db
+            # save to metadata db
             db.session.commit()
+
+            # churchtools
+            group.treffpunkt = form.where.data
+            group.treffzeit = form.when.data
+            group.zielgruppe = form.audience.data
+
+            # save data to churchtools db
+            ct_connect.SESSION.add(group)
+            ct_connect.SESSION.commit()
 
             flash('Gruppe geaendert!', 'success')
             return redirect(url_for('group', id=id))
@@ -318,12 +339,21 @@ def get_user_metadata(id):
 @login_required
 def profile(id):
     user = ct_connect.get_person_from_id(id)
+
     if not user:
         abort(404)
+
     user_metadata = get_user_metadata(id)
+
+    user_edit = False
+    for session_user in session['user']:
+        if session_user['id'] in [i.id for i in user]:
+            user_edit = True
+
     return render_template('profile.html',
                            user=user[0],
-                           user_metadata=user_metadata)
+                           user_metadata=user_metadata,
+                           user_edit=user_edit)
 
 
 @app.route('/profile/<int:id>/edit', methods=['GET', 'POST'])

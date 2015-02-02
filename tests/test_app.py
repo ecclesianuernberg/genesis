@@ -73,12 +73,14 @@ def reset_ct_user(request):
     # create data store and fill it
     test_user_data = []
     for entry in ct_entries:
-        test_user_data.append(
-            {'id': entry.id,
-             'strasse': entry.strasse,
-             'plz': entry.plz,
-             'ort': entry.ort,
-             'password': entry.password})
+        user_data = {}
+        user_data['id'] = entry.id
+        user_data['strasse'] = entry.strasse
+        user_data['plz'] = entry.plz
+        user_data['ort'] = entry.ort
+        user_data['password'] = entry.password
+
+        test_user_data.append(user_data)
 
     def fin():
         for entry in test_user_data:

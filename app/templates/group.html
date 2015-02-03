@@ -23,7 +23,7 @@
 
 	<h1 class="text-center">{{ group.bezeichnung.split('-')[-1] }}</h1>
 	<p class="text-center">
-		<a href="mailto:foo@foo.com"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
+		<a href="{{ url_for('mail', id=group.id, profile_or_group='group')  }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
 		{% if group_edit %}<a href="{{ url_for('group_edit', id=group.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-pencil"></i> edit</button></a>{% endif %}
 	</p>
 

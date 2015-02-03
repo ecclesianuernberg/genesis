@@ -21,7 +21,7 @@
 	</p>
 	<h1>{{ user.vorname }} {{ user.name }} {% if user.ort %}<small>{{ user.ort }}</small>{% endif %}</h1>
 	<p class="text-center">
-		<a href="mailto:{{ user.email }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
+		<a href="{{ url_for('mail', id=user.id, profile_or_group='profile') }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
 		{% if user_metadata.twitter %}<a href="{{ user_metadata.twitter }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-twitter"></i> twitter</button></a>{% endif %}
 		{% if user_metadata.facebook %}<a href="{{ user_metadata.facebook }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-facebook"></i> facebook</button></a>{% endif %}
 		{% if user_edit %}<a href="{{ url_for('profile_edit', id=user.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-pencil"></i> edit</button></a>{% endif %}

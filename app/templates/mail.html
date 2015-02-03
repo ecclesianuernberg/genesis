@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block content %}
+<div class="container">
+	<h1>Email <small>senden</small></h1>
+	{{ wtf.quick_form(form, button_map={'submit': 'primary'}, enctype='multipart/form-data') }}
+</div>
+{{ super() }}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+{% endblock %}

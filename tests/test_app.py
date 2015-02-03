@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
+
+# set environment variables
+os.environ['FLASK_CONFIG'] = 'testing'
+
 import app
 import tempfile
 import os
@@ -7,7 +12,7 @@ import base64
 import json
 import pytest
 from config import config
-from app import ct_connect, auth
+from app import ct_connect, auth, mailing
 from datetime import datetime
 from cStringIO import StringIO
 from itsdangerous import (
@@ -247,6 +252,13 @@ def edit_profile(client,
                              'confirm': password,
                              'user_image': (StringIO('hi everyone'),
                                             'test.jpg')},
+                       follow_redirects=True)
+
+
+def send_mail(client, url, subject, body):
+    return client.post(url,
+                       data={'subject': subject,
+                             'body': body},
                        follow_redirects=True)
 
 
@@ -822,7 +834,6 @@ def test_edit_profile(client, reset_ct_user, test_user):
     assert bio in rv.data
     assert twitter in rv.data
     assert facebook in rv.data
-    assert test_user['user'] in rv.data
 
     # test churchtools db entries
     ct_person = ct_connect.get_person_from_id(test_user['id'])[0]
@@ -896,3 +907,72 @@ def test_admin_access_logged_out(client):
                  'prayerview']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == 403
+
+
+def test_mailing():
+    ''' mailing functions '''
+    sender = TEST_USER[0]['user']
+    recipients = [TEST_USER[1]['user']]
+    subject = 'Testsubject'
+    body = 'Testbody'
+
+    with app.app.app_context():
+        with app.mail.record_messages() as outbox:
+            mailing.send_email(sender=sender,
+                               subject=subject,
+                               recipients=recipients,
+                               body=body)
+
+            assert outbox[0].sender == sender
+            assert outbox[0].recipients == recipients
+            assert outbox[0].subject == subject
+            assert body in outbox[0].body
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_get_recipients(test_user):
+    # profile
+    rv = app.views.get_recipients('profile', test_user['id'])
+
+    assert rv == [test_user['user']]
+
+    # group
+    rv = app.views.get_recipients('group', 1)
+    assert rv == ['test.leiter@ecclesianuernberg.de',
+                  'xsteadfastx@gmail.com']
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_mail_access(client, test_user):
+    # access if not logged in
+    rv = client.get('/mail/group/1')
+    assert rv.status_code == 302
+    assert 'You should be redirected automatically' in rv.data
+
+    # a bogus mail url
+    login(client, test_user['user'], test_user['password'])
+    rv = client.get('/mail/foo/1')
+    assert rv.status_code == 404
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_mail(client, test_user):
+    ''' sending mail through webform '''
+    sender = test_user['user']
+    recipients = [test_user['user']]
+    subject = 'Testsubject'
+    body = 'Testbody'
+
+    with app.mail.record_messages() as outbox:
+        login(client, test_user['user'], test_user['password'])
+        rv = send_mail(client,
+                       '/mail/profile/{}'.format(test_user['id']),
+                       'Testsubject',
+                       'Testbody')
+
+        assert rv.status_code == 200
+        assert 'Email gesendet!' in rv.data
+        assert outbox[0].sender == sender
+        assert outbox[0].recipients == recipients
+        assert outbox[0].subject == subject
+        assert body in outbox[0].body

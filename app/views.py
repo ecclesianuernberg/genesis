@@ -20,7 +20,8 @@ from . import (
     forms,
     models,
     auth,
-    ct_connect)
+    ct_connect,
+    mailing)
 import os.path
 import uuid
 import random
@@ -424,3 +425,41 @@ def profile_edit(id):
         user=user,
         user_metadata=user_metadata,
         form=form)
+
+
+def get_recipients(profile_or_group, id):
+    if 'profile' in profile_or_group:
+        person = ct_connect.get_person_from_id(id)[0]
+
+        return [person.email]
+
+    elif 'group' in profile_or_group:
+        group = ct_connect.get_group_heads(id)
+
+        return [i.email for i in group]
+
+
+@app.route('/mail/<profile_or_group>/<int:id>', methods=['GET', 'POST'])
+@login_required
+def mail(profile_or_group, id):
+    if profile_or_group not in ('profile', 'group'):
+        abort(404)
+
+    form = forms.MailForm()
+
+    if form.validate_on_submit():
+        try:
+            recipients = get_recipients(profile_or_group, id)
+            mailing.send_email(sender=current_user.get_id(),
+                               recipients=recipients,
+                               subject=form.subject.data,
+                               body=form.body.data)
+
+            flash('Email gesendet!', 'success')
+            return redirect(url_for(profile_or_group, id=id))
+
+        except:
+            flash('Es ist ein Fehler aufgetreten!', 'danger')
+            return redirect(url_for(profile_or_group, id=id))
+
+    return render_template('mail.html', form=form)

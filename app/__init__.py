@@ -8,6 +8,7 @@ from flask.ext.moment import Moment
 from flask.ext.pagedown import PageDown
 from flask.ext.restful import Api
 from flask.ext.httpauth import HTTPBasicAuth
+from flask_mail import Mail
 from config import config
 import os
 
@@ -41,6 +42,9 @@ migrate = Migrate(app, db)
 
 # PageDown Editor
 pagedown = PageDown(app)
+
+# Mail
+mail = Mail(app)
 
 # REST API
 api = Api(app)

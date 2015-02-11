@@ -1,4 +1,4 @@
-from app import app, basic_auth
+from app import app, basic_auth, ct_connect
 from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
@@ -7,7 +7,6 @@ from itsdangerous import (
     SignatureExpired,
     BadSignature)
 from passlib.hash import bcrypt
-from . import ct_connect
 
 
 def persons(user):

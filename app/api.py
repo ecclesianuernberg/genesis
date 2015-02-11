@@ -1,4 +1,4 @@
-from app import app, api, basic_auth, db
+from app import app, api, basic_auth, db, ct_connect, models
 from datetime import datetime
 from flask import jsonify, g
 from flask.ext.restful import (
@@ -8,9 +8,6 @@ from flask.ext.restful import (
     marshal_with,
     abort)
 from unidecode import unidecode
-from . import (
-    ct_connect,
-    models)
 from views import get_random_prayer, get_prayer
 from auth import prayer_owner_or_403
 

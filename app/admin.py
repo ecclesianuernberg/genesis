@@ -1,4 +1,4 @@
-from . import app, db
+from app import app, db
 from flask.ext.login import current_user
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.sqla import ModelView

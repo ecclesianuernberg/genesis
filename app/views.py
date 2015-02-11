@@ -1,4 +1,4 @@
-from app import app, db
+from app import app, db, forms, models, auth, ct_connect, mailing
 from datetime import datetime
 from urlparse import urljoin
 from PIL import Image, ImageOps
@@ -16,12 +16,6 @@ from flask.ext.login import (
     logout_user,
     login_required,
     current_user)
-from . import (
-    forms,
-    models,
-    auth,
-    ct_connect,
-    mailing)
 import os.path
 import uuid
 import random

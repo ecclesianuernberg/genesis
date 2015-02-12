@@ -5,6 +5,7 @@ import os
 os.environ['FLASK_CONFIG'] = 'testing'
 
 import app
+import flask
 import tempfile
 import os
 import shutil
@@ -126,7 +127,70 @@ def reset_ct_group(request):
         ct_connect.SESSION.commit()
 
     request.addfinalizer(fin)
-    return True
+
+
+def ct_create_person(user_data):
+    ''' creates temp churchtools person '''
+    # extracting column keys out of person table from churchtools
+    ct_columns = ct_connect.Person.__table__.columns.keys()
+
+    # create person data dict prefilled with default empty strings
+    person_data = {}
+    for column in ct_columns:
+        person_data[column] = ''
+
+    # for each item in user_data create an db entry
+    for user in user_data:
+        # getting person_data dict
+        temp_person_data = person_data
+
+        # fill the temp_person_dict
+        for key, value in user.iteritems():
+            if key == 'password':
+                temp_person_data[key] = bcrypt.encrypt(value)
+            else:
+                temp_person_data[key] = value
+
+        # define temp user
+        temp_user = ct_connect.Person(**temp_person_data)
+
+        # add temp user to session
+        ct_connect.SESSION.add(temp_user)
+
+    # save to db
+    ct_connect.SESSION.commit()
+
+
+def ct_delete_person(user_data):
+    # for each user in user_data find and delete entry
+    for user in user_data:
+        ct_connect.SESSION.query(ct_connect.Person).filter(
+            ct_connect.Person.email == user['email'],
+            ct_connect.Person.name == user['name'],
+            ct_connect.Person.vorname == user['vorname']).delete()
+
+    # save to db
+    ct_connect.SESSION.commit()
+
+
+@pytest.fixture
+def ct_same_username_and_password(request):
+    user_data = [{'email': 'test@test.com',
+                  'password': 'testpassword',
+                  'vorname': 'Testvorname',
+                  'name': 'Testnachname'},
+                 {'email': 'test@test.com',
+                  'password': 'testpassword',
+                  'vorname': 'AnotherTestvorname',
+                  'name': 'AnotherTestnachname'}]
+
+    ct_create_person(user_data)
+
+    def fin():
+        ct_delete_person(user_data)
+
+    request.addfinalizer(fin)
+    return user_data
 
 
 def get_wrong_user_id(own_id):
@@ -183,7 +247,7 @@ def edit_group(client, id, description='', where='', when='', audience=''):
 def create_api_creds(test_user):
     ''' helper to create creds for api usage '''
     user_password = b'{}:{}'.format(
-        test_user['user'],
+        test_user['email'],
         test_user['password'])
 
     return base64.b64encode(user_password).decode(
@@ -199,7 +263,7 @@ def get_api_token(client, creds):
 def create_wrong_api_creds(test_user):
     ''' helper to create creds for api usage '''
     user_password = b'{}:{}'.format(
-        test_user['user'],
+        test_user['email'],
         'wrongpassword')
 
     return base64.b64encode(user_password).decode(
@@ -265,12 +329,12 @@ def send_mail(client, url, subject, body):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_login(client, test_user):
     ''' login user'''
-    rv = login(client,
-               test_user['user'],
-               test_user['password'])
+    with client as c:
+        rv = login(c, test_user['email'], test_user['password'])
 
-    assert rv.status_code == 200
-    assert 'Erfolgreich eingeloggt!' in rv.data
+        assert rv.status_code == 200
+        assert 'Erfolgreich eingeloggt!' in rv.data
+        assert flask.session['user'][0]['active'] is True
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -285,7 +349,7 @@ def test_logout(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER[1:3])
 def test_ct_get_person(test_user):
     ''' person out of churchtools '''
-    rv = ct_connect.get_person(test_user['user'])
+    rv = ct_connect.get_person(test_user['email'])
 
     assert test_user['name'] in [i.name for i in rv]
     assert test_user['vorname'] in [i.vorname for i in rv]
@@ -296,7 +360,7 @@ def test_ct_person_from_id(test_user):
     ''' person out of churchtools from id '''
     rv = ct_connect.get_person_from_id(test_user['id'])[0]
 
-    assert rv.email == test_user['user']
+    assert rv.email == test_user['email']
     assert rv.name == test_user['name']
     assert rv.vorname == test_user['vorname']
 
@@ -391,7 +455,7 @@ def test_access_prayer(client, test_user):
 
     # logged in
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     rv = client.get('/prayer')
@@ -403,7 +467,7 @@ def test_access_prayer(client, test_user):
 def test_add_prayer(client, test_user):
     ''' adding prayer '''
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     prayer = 'Test-Anliegen'
@@ -425,7 +489,7 @@ def test_add_prayer(client, test_user):
 def test_edit_prayer(client, test_user):
     ''' editing prayer '''
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     # add prayer
@@ -451,7 +515,7 @@ def test_edit_prayer(client, test_user):
 def test_del_prayer(client, test_user):
     '''delete prayer'''
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     # add prayer to delete it
@@ -474,7 +538,7 @@ def test_access_group_list(client, test_user):
     # logged in
 
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     rv = client.get('/groups')
@@ -495,7 +559,7 @@ def test_group_list(client, test_user):
         if group.treffpunkt:
             group_data.append(group.treffpunkt.encode('utf-8'))
 
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
     rv = client.get('/groups')
 
     for data in group_data:
@@ -509,7 +573,7 @@ def test_group_edit_forbidden_logged_in(client):
 
     for url in urls:
         login(client,
-              app.app.config['TEST_USER'][0]['user'],
+              app.app.config['TEST_USER'][0]['email'],
               app.app.config['TEST_USER'][0]['password'])
 
         rv = client.get(url)
@@ -539,7 +603,7 @@ def test_group_edit_allowed(client, reset_ct_group, own_group):
 
     # login
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     # edit
@@ -569,7 +633,7 @@ def test_group_edit_forbidden(client, not_own_group):
 
     # login
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     # edit
@@ -582,7 +646,7 @@ def test_group_edit_forbidden(client, not_own_group):
                          zip(TEST_USER, [True, False, False]))
 def test_group_edit_button(client, test_user, allowed):
     ''' edit button on group page '''
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/group/1')
     edit_button = 'edit' in rv.data
@@ -599,7 +663,7 @@ def test_group_data(client, test_user):
     group_ct_data = ct_connect.get_group(random_group.id)
     # group_metadata = app.views.get_group_metadata(random_group.id)
 
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/group/{}'.format(random_group.id))
 
@@ -621,7 +685,7 @@ def test_api_token(client, test_user):
     token = json.loads(rv.data)['token']
     s = Serializer(app.app.config['SECRET_KEY'])
 
-    assert s.loads(token)['id'] == test_user['user']
+    assert s.loads(token)['id'] == test_user['email']
 
     # wrong password
     creds = create_wrong_api_creds(test_user)
@@ -703,9 +767,9 @@ def test_api_del_prayer(client, test_user):
 def test_persons():
     ''' creates session dict for persons '''
     test_user = app.app.config['TEST_USER'][1]
-    user = ct_connect.get_person(test_user['user'])
+    user = ct_connect.get_person(test_user['email'])
     persons = auth.persons(user)
-    assert persons[0]['email'] == test_user['user']
+    assert persons[0]['email'] == test_user['email']
     assert persons[0]['id'] == test_user['id']
     assert persons[0]['vorname'] == test_user['vorname']
     assert persons[0]['name'] == test_user['name']
@@ -721,7 +785,7 @@ def test_navbar_profile_links(client, test_user):
 
     # now login
     login(client,
-          test_user['user'],
+          test_user['email'],
           test_user['password'])
 
     rv = client.get('/')
@@ -730,11 +794,25 @@ def test_navbar_profile_links(client, test_user):
         test_user['name']) in rv.data
 
 
+def test_navbar_profile_links_same_auth(client, ct_same_username_and_password):
+    ''' profile links in navbar for same email password combination '''
+    test_user = ct_same_username_and_password[0]
+
+    login(client, test_user['email'], test_user['password'])
+
+    rv = client.get('/')
+
+    for user in ct_same_username_and_password:
+        assert '{} {}'.format(
+            user['vorname'],
+            user['name']) in rv.data
+
+
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_get_valid_users(test_user):
     ''' list of valid users '''
     user = auth.CTUser(
-        uid=test_user['user'],
+        uid=test_user['email'],
         password=test_user['password']).get_user()
 
     assert auth.get_valid_users(
@@ -743,7 +821,7 @@ def test_get_valid_users(test_user):
 
     # wrong password
     user = auth.CTUser(
-        uid=test_user['user'],
+        uid=test_user['email'],
         password='wrongpassword').get_user()
 
     assert not auth.get_valid_users(
@@ -759,7 +837,7 @@ def test_access_profile(client, test_user):
     assert rv.status_code == 302
 
     # now login
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
     rv = client.get('/profile/{}'.format(test_user['id']))
 
     assert rv.status_code == 200
@@ -779,7 +857,7 @@ def test_access_profile_edit(client, test_user):
     assert rv.status_code == 302
 
     # logged in try to edit other profile
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/profile/{}/edit'.format(
         get_wrong_user_id(test_user['id'])))
@@ -792,7 +870,7 @@ def test_access_profile_edit(client, test_user):
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_edit_profile_button(client, test_user):
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/profile/{}'.format(
         get_wrong_user_id(test_user['id'])))
@@ -805,7 +883,7 @@ def test_edit_profile_button(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_edit_profile(client, reset_ct_user, test_user):
     ''' edit profile '''
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     # change profile
     street = 'Teststreet'
@@ -846,6 +924,34 @@ def test_edit_profile(client, reset_ct_user, test_user):
     assert bcrypt.verify(password, ct_person.password)
 
 
+def test_profile_session_active_state(client, ct_same_username_and_password):
+    ''' active state in session after login and visiting other profiles.
+    activate different user in session if the visited profile is allowed to
+    use. dont forget the active state on visiting a different users profile.
+    '''
+    test_user = ct_same_username_and_password
+
+    with client as c:
+        login(c, test_user[0]['email'], test_user[0]['password'])
+
+        # first state of active after logged in
+        assert flask.session['user'][0]['active'] is True
+        assert flask.session['user'][1]['active'] is False
+
+        # go to second user profile
+        c.get('/profile/{}'.format(flask.session['user'][1]['id']))
+
+        assert flask.session['user'][0]['active'] is False
+        assert flask.session['user'][1]['active'] is True
+
+        # go to a profile that doesnt belong to test user.
+        # active state shouldnt have changed
+        c.get('/profile/1')
+
+        assert flask.session['user'][0]['active'] is False
+        assert flask.session['user'][1]['active'] is True
+
+
 def test_image_resize(image):
     img_out = '{}.jpg'.format(tempfile.mktemp())
     app.views.image_resize(image, img_out, size=800)
@@ -868,7 +974,7 @@ def test_save_image(client, image):
     test_user = app.app.config['TEST_USER'][1]
     rv = app.views.save_image(image,
                               request_path='test',
-                              user=test_user['user'])
+                              user=test_user['email'])
 
     # returns a uuid
     assert rv
@@ -881,14 +987,14 @@ def test_save_image(client, image):
     # checks db entries
     image = app.models.Image.query.first()
 
-    assert image.user == test_user['user']
+    assert image.user == test_user['email']
     assert image.upload_to == 'test'
 
 
 @pytest.mark.parametrize('test_user, status_code',
                          zip(TEST_USER, [200, 403, 403]))
 def test_admin_access_logged_in(client, test_user, status_code):
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     for view in ['newsview',
                  'groupmetadataview',
@@ -911,8 +1017,8 @@ def test_admin_access_logged_out(client):
 
 def test_mailing():
     ''' mailing functions '''
-    sender = TEST_USER[0]['user']
-    recipients = [TEST_USER[1]['user']]
+    sender = TEST_USER[0]['email']
+    recipients = [TEST_USER[1]['email']]
     subject = 'Testsubject'
     body = 'Testbody'
 
@@ -934,7 +1040,7 @@ def test_get_recipients(test_user):
     # profile
     rv = app.views.get_recipients('profile', test_user['id'])
 
-    assert rv == [test_user['user']]
+    assert rv == [test_user['email']]
 
     # group
     rv = app.views.get_recipients('group', 1)
@@ -950,7 +1056,7 @@ def test_mail_access(client, test_user):
     assert 'You should be redirected automatically' in rv.data
 
     # a bogus mail url
-    login(client, test_user['user'], test_user['password'])
+    login(client, test_user['email'], test_user['password'])
     rv = client.get('/mail/foo/1')
     assert rv.status_code == 404
 
@@ -958,13 +1064,13 @@ def test_mail_access(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_mail(client, test_user):
     ''' sending mail through webform '''
-    sender = test_user['user']
-    recipients = [test_user['user']]
+    sender = test_user['email']
+    recipients = [test_user['email']]
     subject = 'Testsubject'
     body = 'Testbody'
 
     with app.mail.record_messages() as outbox:
-        login(client, test_user['user'], test_user['password'])
+        login(client, test_user['email'], test_user['password'])
         rv = send_mail(client,
                        '/mail/profile/{}'.format(test_user['id']),
                        'Testsubject',

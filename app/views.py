@@ -109,6 +109,9 @@ def login():
                 # store valid user in session
                 session['user'] = valid_user
 
+                # set activate to True on the first user
+                session['user'][0]['active'] = True
+
                 flash('Erfolgreich eingeloggt!', 'success')
                 return redirect(url_for('index'))
             else:
@@ -344,6 +347,9 @@ def profile(id):
     for session_user in session['user']:
         if session_user['id'] in [i.id for i in user]:
             user_edit = True
+            session_user['active'] = True
+        else:
+            session_user['active'] = False
 
     return render_template('profile.html',
                            user=user[0],

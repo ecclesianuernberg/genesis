@@ -41,7 +41,7 @@
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">PROFIL<span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
 						{% for user in session.user %}
-						<li><a href="{{ url_for('profile', id=user.id) }}">{{ user.vorname }} {{ user.name }}</a></li>
+						<li><a href="{{ url_for('profile', id=user.id) }}">{{ user.vorname }} {{ user.name }} {% if user.active %}<i class="fa fa-check"></i>{% endif %}</a></li>
 						{% endfor %}
           </ul>
         </li>

@@ -18,7 +18,8 @@ def persons(user):
                             'password': person.password,
                             'id': person.id,
                             'vorname': person.vorname,
-                            'name': person.name})
+                            'name': person.name,
+                            'active': False})
 
     return person_list
 

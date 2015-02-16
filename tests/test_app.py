@@ -21,6 +21,7 @@ from itsdangerous import (
 from passlib.hash import bcrypt
 from PIL import Image
 from random import choice
+from unidecode import unidecode
 
 
 # loading config
@@ -1064,7 +1065,6 @@ def test_mail_access(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_mail(client, test_user):
     ''' sending mail through webform '''
-    sender = test_user['email']
     recipients = [test_user['email']]
     subject = 'Testsubject'
     body = 'Testbody'
@@ -1078,7 +1078,10 @@ def test_mail(client, test_user):
 
         assert rv.status_code == 200
         assert 'Email gesendet!' in rv.data
-        assert outbox[0].sender == sender
+        assert outbox[0].sender == '{} {} <{}>'.format(
+            unidecode(test_user['vorname'].decode('utf-8')),
+            unidecode(test_user['name'].decode('utf-8')),
+            test_user['email'])
         assert outbox[0].recipients == recipients
         assert outbox[0].subject == subject
         assert body in outbox[0].body

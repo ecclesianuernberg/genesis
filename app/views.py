@@ -3,6 +3,7 @@ from datetime import datetime
 from urlparse import urljoin
 from PIL import Image, ImageOps
 from passlib.hash import bcrypt
+from unidecode import unidecode
 from flask import (
     render_template,
     redirect,
@@ -449,8 +450,14 @@ def mail(profile_or_group, id):
 
     if form.validate_on_submit():
         try:
+            # create sender tuple
+            sender = [('{} {}'.format(unidecode(user['vorname']),
+                                      unidecode(user['name'])), user['email'])
+                      for user in session['user']
+                      if user['active']][0]
+
             recipients = get_recipients(profile_or_group, id)
-            mailing.send_email(sender=current_user.get_id(),
+            mailing.send_email(sender=sender,
                                recipients=recipients,
                                subject=form.subject.data,
                                body=form.body.data)

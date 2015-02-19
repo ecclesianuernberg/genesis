@@ -334,7 +334,7 @@ def get_user_metadata(id):
     return models.UserMetadata.query.filter_by(ct_id=id).first()
 
 
-@app.route('/profile/<int:id>')
+@app.route('/profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 def profile(id):
     user = ct_connect.get_person_from_id(id)
@@ -342,8 +342,10 @@ def profile(id):
     if not user:
         abort(404)
 
+    # geting metadata
     user_metadata = get_user_metadata(id)
 
+    # check if user is allowed to edit profile
     user_edit = False
     for session_user in session['user']:
         if session_user['id'] in [i.id for i in user]:
@@ -352,80 +354,76 @@ def profile(id):
         else:
             session_user['active'] = False
 
+    if request.method == 'POST' and user_edit is False:
+        abort(403)
+
+    # set form to None that there is something to send to the template
+    # if logged in user is not allowed to edit profile
+    form = None
+
+    # this is for editing users own profile
+    if user_edit:
+        # if there is no user_metadata db entry define it
+        if not user_metadata:
+            user_metadata = models.UserMetadata(ct_id=id)
+            db.session.add(user_metadata)
+
+        # try to prefill form
+        form = forms.EditProfileForm(
+            street=user[0].strasse,
+            postal_code=user[0].plz,
+            city=user[0].ort,
+            bio=user_metadata.bio,
+            twitter=user_metadata.twitter,
+            facebook=user_metadata.facebook)
+
+        # clicked submit
+        if form.validate_on_submit():
+            try:
+                # save image and set the image db true
+                form.user_image.data.stream.seek(0)
+
+                # metadata
+                user_image = save_image(form.user_image.data.stream,
+                                        request_path=request.path,
+                                        user=current_user.get_id())
+                if user_image:
+                    user_metadata.image_id = user_image
+
+                user_metadata.bio = form.bio.data
+                user_metadata.twitter = form.twitter.data
+                user_metadata.facebook = form.facebook.data
+
+                # save metadata to metadata db
+                db.session.add(user_metadata)
+                db.session.commit()
+
+                # churchtools
+                user[0].strasse = form.street.data
+                user[0].plz = form.postal_code.data
+                user[0].ort = form.city.data
+
+                # password
+                if form.password.data:
+                    user[0].password = bcrypt.encrypt(form.password.data)
+
+                # save data to churchtools db
+                ct_connect.SESSION.add(user[0])
+                ct_connect.SESSION.commit()
+
+                flash('Profil geaendert!', 'success')
+                return redirect(url_for('profile', id=id))
+
+            except:
+                flash('Es ist ein Fehler aufgetreten!', 'danger')
+                return redirect(url_for('profile', id=id))
+
     return render_template('profile.html',
                            user=user[0],
                            user_metadata=user_metadata,
-                           user_edit=user_edit)
-
-
-@app.route('/profile/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
-def profile_edit(id):
-    auth.own_profile_or_403(id)
-
-    user = ct_connect.get_person_from_id(id)[0]
-    user_metadata = get_user_metadata(id)
-
-    # if there is no user_metadata db entry define it
-    if not user_metadata:
-        user_metadata = models.UserMetadata(ct_id=id)
-        db.session.add(user_metadata)
-
-    # try to prefill form
-    form = forms.EditProfileForm(
-        street=user.strasse,
-        postal_code=user.plz,
-        city=user.ort,
-        bio=user_metadata.bio,
-        twitter=user_metadata.twitter,
-        facebook=user_metadata.facebook)
-
-    # clicked submit
-    if form.validate_on_submit():
-        try:
-            # save image and set the image db true
-            form.user_image.data.stream.seek(0)
-
-            # metadata
-            user_image = save_image(form.user_image.data.stream,
-                                    request_path=request.path,
-                                    user=current_user.get_id())
-            if user_image:
-                user_metadata.image_id = user_image
-
-            user_metadata.bio = form.bio.data
-            user_metadata.twitter = form.twitter.data
-            user_metadata.facebook = form.facebook.data
-
-            # save metadata to metadata db
-            db.session.add(user_metadata)
-            db.session.commit()
-
-            # churchtools
-            user.strasse = form.street.data
-            user.plz = form.postal_code.data
-            user.ort = form.city.data
-
-            # password
-            if form.password.data:
-                user.password = bcrypt.encrypt(form.password.data)
-
-            # save data to churchtools db
-            ct_connect.SESSION.add(user)
-            ct_connect.SESSION.commit()
-
-            flash('Profil geaendert!', 'success')
-            return redirect(url_for('profile', id=id))
-
-        except:
-            flash('Es ist ein Fehler aufgetreten!', 'danger')
-            return redirect(url_for('profile', id=id))
-
-    return render_template(
-        'profile_edit.html',
-        user=user,
-        user_metadata=user_metadata,
-        form=form)
+                           user_edit=user_edit,
+                           form=form,
+                           mail_form=forms.MailForm())
 
 
 def get_recipients(profile_or_group, id):

@@ -133,11 +133,11 @@ class EditProfileForm(Form):
 
     twitter = StringField(
         'Twitter',
-        validators=[validators.URL()])
+        validators=[validators.optional(), validators.URL()])
 
     facebook = StringField(
         'Facebook',
-        validators=[validators.URL()])
+        validators=[validators.optional(), validators.URL()])
 
     # submit
     submit = SubmitField('Submit')

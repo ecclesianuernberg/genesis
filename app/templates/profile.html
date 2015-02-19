@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block content %}
 <div class="container">
@@ -21,14 +22,62 @@
 	</p>
 	<h1>{{ user.vorname }} {{ user.name }} {% if user.ort %}<small>{{ user.ort }}</small>{% endif %}</h1>
 	<p class="text-center">
-		<a href="{{ url_for('mail', id=user.id, profile_or_group='profile') }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
+		<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#MailModal"><i class="fa fa-envelope"></i> email</button>
 		{% if user_metadata.twitter %}<a href="{{ user_metadata.twitter }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-twitter"></i> twitter</button></a>{% endif %}
 		{% if user_metadata.facebook %}<a href="{{ user_metadata.facebook }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-facebook"></i> facebook</button></a>{% endif %}
-		{% if user_edit %}<a href="{{ url_for('profile_edit', id=user.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-pencil"></i> edit</button></a>{% endif %}
+		{% if user_edit %}<button type="button" class="btn btn-danger btn-xs" data-toggle="modal" data-target="#EditModal"><i class="fa fa-pencil"></i> edit</button>{% endif %}
 	</p>
 	{% if user_metadata.bio %}
 	{{ user_metadata.bio|markdown  }}
 	{% endif %}
 </div>
+
+<!-- Mail Modal -->
+<div class="modal fade" id="MailModal" tabindex="-1" role="dialog" aria-labelledby="MailModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Mail</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(mail_form, action=url_for('mail', id=user.id, profile_or_group='profile'), button_map={'submit': 'primary'}) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if user_edit %}
+<!-- Edit Modal -->
+<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Edit</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(form, button_map={'submit': 'primary'}, enctype='multipart/form-data') }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {{ super() }}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+	{{ pagedown.html_head() }}
+	{% if user_edit %}
+	<script>
+		var formErrors = {% if form.errors %}true{% else%}false{% endif %}
+		$(document).ready(function() {
+			if (formErrors) {
+				$('#EditModal').modal('show');
+			}
+		});
+	</script>
+	{% endif %}
 {% endblock %}

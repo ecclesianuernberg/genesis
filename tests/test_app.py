@@ -306,7 +306,7 @@ def edit_profile(client,
                  password,
                  twitter,
                  facebook):
-    return client.post('/profile/{}/edit'.format(id),
+    return client.post('/profile/{}'.format(id),
                        data={'street': street,
                              'postal_code': postal_code,
                              'city': city,
@@ -830,7 +830,7 @@ def test_get_valid_users(test_user):
         'wrongpassword')
 
 
-@pytest.mark.parametrize('test_user', TEST_USER[1:3])
+@pytest.mark.parametrize('test_user', TEST_USER)
 def test_access_profile(client, test_user):
     ''' access profiles '''
     rv = client.get('/profile/{}'.format(test_user['id']))
@@ -848,25 +848,6 @@ def test_access_profile(client, test_user):
     # not exisiting profile
     rv = client.get('/profile/7777')
     assert rv.status_code == 404
-
-
-@pytest.mark.parametrize('test_user', TEST_USER)
-def test_access_profile_edit(client, test_user):
-    ''' access profile edit form '''
-    # not logged in
-    rv = client.get('/profile/{}/edit'.format(test_user['id']))
-    assert rv.status_code == 302
-
-    # logged in try to edit other profile
-    login(client, test_user['email'], test_user['password'])
-
-    rv = client.get('/profile/{}/edit'.format(
-        get_wrong_user_id(test_user['id'])))
-    assert rv.status_code == 403
-
-    # own profile edit
-    rv = client.get('/profile/{}/edit'.format(test_user['id']))
-    assert rv.status_code == 200
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -923,6 +904,30 @@ def test_edit_profile(client, reset_ct_user, test_user):
 
     # check password
     assert bcrypt.verify(password, ct_person.password)
+
+    # now with a user that is not allowed
+    wrong_user_id = get_wrong_user_id(test_user['id'])
+
+    rv = edit_profile(client,
+                      id=wrong_user_id,
+                      street=street,
+                      postal_code=postal_code,
+                      city=city,
+                      bio=bio,
+                      password=password,
+                      twitter=twitter,
+                      facebook=facebook)
+
+    # not allowed
+    assert rv.status_code == 403
+
+    # nothing changed
+    rv = client.get('/profile/{}'.format(wrong_user_id))
+
+    assert city not in rv.data
+    assert bio not in rv.data
+    assert twitter not in rv.data
+    assert facebook not in rv.data
 
 
 def test_profile_session_active_state(client, ct_same_username_and_password):

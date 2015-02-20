@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block content %}
 <div class="container">
@@ -23,8 +24,8 @@
 
 	<h1 class="text-center">{{ group.bezeichnung.split('-')[-1] }}</h1>
 	<p class="text-center">
-		<a href="{{ url_for('mail', id=group.id, profile_or_group='group')  }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-envelope"></i> email</button></a>
-		{% if group_edit %}<a href="{{ url_for('group_edit', id=group.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-pencil"></i> edit</button></a>{% endif %}
+		<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#MailModal"><i class="fa fa-envelope"></i> email</button>
+		{% if group_edit %}<button type="button" class="btn btn-danger btn-xs" data-toggle="modal" data-target="#EditModal"><i class="fa fa-pencil"></i> edit</button>{% endif %}
 	</p>
 
 	{% if group.treffzeit %}
@@ -60,5 +61,53 @@
 	{% endif %}
 
 </div>
+
+<!-- Mail Modal -->
+<div class="modal fade" id="MailModal" tabindex="-1" role="dialog" aria-labelledby="MailModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Mail</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(mail_form, action=url_for('mail', id=group.id, profile_or_group='group'), button_map={'submit': 'primary'}) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if group_edit %}
+<!-- Edit Modal -->
+<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="EditModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Edit</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(form, button_map={'submit': 'primary'}, enctype='multipart/form-data') }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {{ super() }}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+	{{ pagedown.html_head() }}
+	{% if user_edit %}
+	<script>
+		var formErrors = {% if form.errors %}true{% else%}false{% endif %}
+		$(document).ready(function() {
+			if (formErrors) {
+				$('#EditModal').modal('show');
+			}
+		});
+	</script>
+	{% endif %}
 {% endblock %}

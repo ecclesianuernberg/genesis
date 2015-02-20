@@ -151,7 +151,8 @@ def groups():
                            groups_metadata=groups_metadata)
 
 
-@app.route('/group/<int:id>')
+@app.route('/group/<int:id>', methods=['GET', 'POST'])
+@login_required
 def group(id):
     ''' show group '''
     group = ct_connect.get_group(id)
@@ -165,73 +166,67 @@ def group(id):
     if current_user.get_id() in [i.email for i in group_heads]:
         group_edit = True
 
+    # if someone is trying to make a POST request and group_edit is False
+    # abort with a 403 status
+    if request.method == 'POST' and group_edit is False:
+        abort(403)
+
+    # set form to None that there is something to send to the template
+    # if logged in user is not allowed to edit group
+    form = None
+
+    if group_edit:
+        if not group_metadata:
+            group_metadata = models.GroupMetadata(ct_id=id)
+            db.session.add(group_metadata)
+
+        # prefill form with db data
+        form = forms.EditGroupForm(
+            description=group_metadata.description,
+            where=group.treffpunkt,
+            when=group.treffzeit,
+            audience=group.zielgruppe)
+
+        # clicked submit
+        if form.validate_on_submit():
+            try:
+                # metadata
+                group_metadata.description = form.description.data
+
+                # save image and set the image db true
+                form.group_image.data.stream.seek(0)
+                group_image = save_image(form.group_image.data.stream,
+                                         request_path=request.path,
+                                         user=current_user.get_id())
+                if group_image:
+                    group_metadata.image_id = group_image
+
+                # save to metadata db
+                db.session.commit()
+
+                # churchtools
+                group.treffpunkt = form.where.data
+                group.treffzeit = form.when.data
+                group.zielgruppe = form.audience.data
+
+                # save data to churchtools db
+                ct_connect.SESSION.add(group)
+                ct_connect.SESSION.commit()
+
+                flash('Gruppe geaendert!', 'success')
+                return redirect(url_for('group', id=id))
+
+            except:
+                flash('Fehler aufgetreten!', 'danger')
+                return redirect(url_for('group', id=id))
+
     return render_template('group.html',
                            group=group,
                            group_metadata=group_metadata,
                            group_heads=group_heads,
-                           group_edit=group_edit)
-
-
-@app.route('/group/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
-def group_edit(id):
-    auth.head_of_group_or_403(id)
-
-    # get group
-    group = ct_connect.get_group(id)
-
-    # get metadata
-    group_metadata = get_group_metadata(id)
-
-    # if there is no group_metadata db entry define it
-    if not group_metadata:
-        group_metadata = models.GroupMetadata(ct_id=id)
-        db.session.add(group_metadata)
-
-    # prefill form with db data
-    form = forms.EditGroupForm(
-        description=group_metadata.description,
-        where=group.treffpunkt,
-        when=group.treffzeit,
-        audience=group.zielgruppe)
-
-    # clicked submit
-    if form.validate_on_submit():
-        try:
-            # metadata
-            group_metadata.description = form.description.data
-
-            # save image and set the image db true
-            form.group_image.data.stream.seek(0)
-            group_image = save_image(form.group_image.data.stream,
-                                     request_path=request.path,
-                                     user=current_user.get_id())
-            if group_image:
-                group_metadata.image_id = group_image
-
-            # save to metadata db
-            db.session.commit()
-
-            # churchtools
-            group.treffpunkt = form.where.data
-            group.treffzeit = form.when.data
-            group.zielgruppe = form.audience.data
-
-            # save data to churchtools db
-            ct_connect.SESSION.add(group)
-            ct_connect.SESSION.commit()
-
-            flash('Gruppe geaendert!', 'success')
-            return redirect(url_for('group', id=id))
-
-        except:
-            flash('Fehler aufgetreten!', 'danger')
-            return redirect(url_for('group', id=id))
-
-    return render_template(
-        'group_edit.html',
-        group=group,
-        form=form)
+                           group_edit=group_edit,
+                           form=form,
+                           mail_form=forms.MailForm())
 
 
 def get_random_prayer():
@@ -354,6 +349,8 @@ def profile(id):
         else:
             session_user['active'] = False
 
+    # if someone is trying to make a POST request and user_edit is False
+    # abort with a 403 status
     if request.method == 'POST' and user_edit is False:
         abort(403)
 

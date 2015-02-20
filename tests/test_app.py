@@ -236,7 +236,7 @@ def del_prayer(client, id):
 
 def edit_group(client, id, description='', where='', when='', audience=''):
     ''' helper to edit group '''
-    return client.post('/group/{}/edit'.format(id), data={
+    return client.post('/group/{}'.format(id), data={
         'description': description,
         'group_image': (StringIO('hi everyone'),
                         'test.jpg'),
@@ -537,7 +537,6 @@ def test_access_group_list(client, test_user):
     assert rv.status_code == 302
 
     # logged in
-
     login(client,
           test_user['email'],
           test_user['password'])
@@ -567,30 +566,22 @@ def test_group_list(client, test_user):
         assert data in rv.data
 
 
-def test_group_edit_forbidden_logged_in(client):
-    ''' logged in user cant access groups edit pages '''
-    urls = ['/group/{}/edit'.format(group.id)
-            for group in ct_connect.get_active_groups() if group.id != 1]
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_access_group(client, test_user):
+    ''' logged out cant access group page'''
+    # not logged in
+    rv = client.get('/group/1')
 
-    for url in urls:
-        login(client,
-              app.app.config['TEST_USER'][0]['email'],
-              app.app.config['TEST_USER'][0]['password'])
+    assert rv.status_code == 302
 
-        rv = client.get(url)
+    # logged in
+    login(client,
+          test_user['email'],
+          test_user['password'])
 
-        assert rv.status_code == 403
+    rv = client.get('/group/1')
 
-
-def test_group_edit_forbidden_logged_out(client):
-    ''' logged out user cant access group edit pages '''
-    urls = ['/group/{}/edit'.format(
-        i.id) for i in ct_connect.get_active_groups()]
-
-    for url in urls:
-        rv = client.get(url)
-
-        assert 'You should be redirected automatically' in rv.data
+    assert rv.status_code == 200
 
 
 @pytest.mark.parametrize('own_group',
@@ -662,7 +653,6 @@ def test_group_data(client, test_user):
     random_group = choice(groups)
 
     group_ct_data = ct_connect.get_group(random_group.id)
-    # group_metadata = app.views.get_group_metadata(random_group.id)
 
     login(client, test_user['email'], test_user['password'])
 

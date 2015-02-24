@@ -224,8 +224,9 @@ def add_prayer(client, body):
 
 def edit_prayer(client, id, body):
     ''' helper to edit a prayer '''
-    return client.post('/prayer/{}/edit'.format(id),
-                       data={'body': body}, follow_redirects=True)
+    return client.post('/prayer/mine',
+                       data={'{}-body'.format(id): body},
+                       follow_redirects=True)
 
 
 def del_prayer(client, id):

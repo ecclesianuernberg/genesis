@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block content %}
 <div class="container">
@@ -18,15 +19,37 @@
 		<div class="panel-heading">{{ moment(prayer.pub_date).fromNow() }}</div>
 		<div class="panel-body">
 			{{ prayer.body|markdown }}
-			<p class="text-right"><small><a href="{{ url_for('prayer_edit', id=prayer.id) }}">edit</a></small></p>
+			<p class="text-right">
+				<button type="button" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#Prayer{{ prayer.id }}Modal"><i class="fa fa-pencil"></i> edit</button>
+				<a href="{{ url_for('prayer_del', id=prayer.id) }}"><button type="button" class="btn btn-danger btn-xs"><i class="fa fa-remove"></i> delete</button></a>
+			</p>
 		</div>
 	</div>
 	{% endfor %}
 </div>
+
+{% for id, form in edit_forms.iteritems() %}
+<!-- Edit Prayer {{ id }} Modal -->
+<div class="modal fade" id="Prayer{{ id }}Modal" tabindex="-1" role="dialog" aria-labelledby="Prayer{{ id }}ModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Edit</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(form, button_map={id|string + '-submit': 'primary'}) }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
 {{ super() }}
 {% endblock %}
 
 {% block scripts %}
 	{{ super() }}
 	{{ moment.include_moment() }}
+	{{ pagedown.html_head() }}
 {% endblock %}

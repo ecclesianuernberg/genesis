@@ -273,39 +273,46 @@ def prayer_add():
     return render_template('prayer_add.html', form=form)
 
 
-@app.route('/prayer/mine')
+@app.route('/prayer/mine', methods=['GET', 'POST'])
 @login_required
 def prayer_mine():
+    # getting all own prayers
     prayers = models.Prayer.query.filter_by(
         user=current_user.get_id()).order_by(
             models.Prayer.pub_date.desc()).all()
-    return render_template('prayer_mine.html', prayers=prayers)
 
+    # creating dict with all forms for own prayers
+    edit_forms = {}
+    for prayer in prayers:
+        edit_forms[prayer.id] = forms.EditPrayerForm(
+            prefix=str(prayer.id),
+            body=prayer.body,
+            show_user=prayer.show_user,
+            active=prayer.active)
 
-@app.route('/prayer/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
-def prayer_edit(id):
-    auth.prayer_owner_or_403(id)
+    if request.method == 'POST':
+        # extract id out of form id
+        prayer_id = int(list(request.form)[0].split('-')[0])
 
-    prayer = get_prayer(id)
-    form = forms.EditPrayerForm(body=prayer.body,
-                                show_user=prayer.show_user,
-                                active=prayer.active)
+        # getting right form out of prayers dict
+        edit_prayer_form = edit_forms[prayer_id]
 
-    if form.validate_on_submit():
-        prayer.body = form.body.data
-        prayer.show_user = form.show_user.data
-        prayer.active = form.active.data
+        if edit_prayer_form.validate():
+            # getting prayer from id
+            prayer = get_prayer(prayer_id)
 
-        db.session.commit()
+            prayer.body = edit_prayer_form.body.data
+            prayer.show_user = edit_prayer_form.show_user.data
+            prayer.active = edit_prayer_form.active.data
 
-        flash('Gebetsanliegen veraendert!', 'success')
-        return redirect(url_for('prayer_mine'))
+            db.session.commit()
 
-    return render_template(
-        'prayer_edit.html',
-        id=id,
-        form=form)
+            flash('Gebetsanliegen veraendert!', 'success')
+            return redirect(url_for('prayer_mine'))
+
+    return render_template('prayer_mine.html',
+                           prayers=prayers,
+                           edit_forms=edit_forms)
 
 
 @app.route('/prayer/<int:id>/del')

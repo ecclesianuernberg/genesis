@@ -248,7 +248,7 @@ def prayer():
     ''' show random prayer '''
     random_prayer = get_random_prayer()
     if random_prayer is not None:
-        user = ct_connect.get_person(random_prayer.user)
+        user = ct_connect.get_person(random_prayer.user)[0]
     else:
         user = None
     return render_template('prayer.html',
@@ -291,23 +291,28 @@ def prayer_mine():
             active=prayer.active)
 
     if request.method == 'POST':
-        # extract id out of form id
-        prayer_id = int(list(request.form)[0].split('-')[0])
+        try:
+            # extract id out of form id
+            prayer_id = int(list(request.form)[0].split('-')[0])
 
-        # getting right form out of prayers dict
-        edit_prayer_form = edit_forms[prayer_id]
+            # getting right form out of prayers dict
+            edit_prayer_form = edit_forms[prayer_id]
 
-        if edit_prayer_form.validate():
-            # getting prayer from id
-            prayer = get_prayer(prayer_id)
+            if edit_prayer_form.validate():
+                # getting prayer from id
+                prayer = get_prayer(prayer_id)
 
-            prayer.body = edit_prayer_form.body.data
-            prayer.show_user = edit_prayer_form.show_user.data
-            prayer.active = edit_prayer_form.active.data
+                prayer.body = edit_prayer_form.body.data
+                prayer.show_user = edit_prayer_form.show_user.data
+                prayer.active = edit_prayer_form.active.data
 
-            db.session.commit()
+                db.session.commit()
 
-            flash('Gebetsanliegen veraendert!', 'success')
+                flash('Gebetsanliegen veraendert!', 'success')
+                return redirect(url_for('prayer_mine'))
+
+        except:
+            flash('Es ist ein Fehler aufgetreten!', 'danger')
             return redirect(url_for('prayer_mine'))
 
     return render_template('prayer_mine.html',

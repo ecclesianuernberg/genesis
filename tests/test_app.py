@@ -767,7 +767,7 @@ def test_persons():
     assert persons[0]['name'] == test_user['name']
 
 
-@pytest.mark.parametrize('test_user', TEST_USER[1:3])
+@pytest.mark.parametrize('test_user', TEST_USER)
 def test_navbar_profile_links(client, test_user):
     ''' profile link in navbar '''
     rv = client.get('/')

@@ -22,6 +22,7 @@ from passlib.hash import bcrypt
 from PIL import Image
 from random import choice
 from unidecode import unidecode
+from bs4 import BeautifulSoup
 
 
 # loading config
@@ -222,11 +223,36 @@ def add_prayer(client, body):
         'show_user': True}, follow_redirects=True)
 
 
-def edit_prayer(client, id, body):
+def edit_prayer(client, id, body, active=False, show_user=False):
     ''' helper to edit a prayer '''
-    return client.post('/prayer/mine',
-                       data={'{}-body'.format(id): body},
-                       follow_redirects=True)
+    # i discovered some strange behaviour or it was just my head that got
+    # twisted. just sending body data it means that the booleanfields are
+    # not toggled at all. i could send something like "active: True" or even
+    # "active: 'foo" to get a booleanfield data sent to the form. and now
+    # even more bizarr: you can send "active: False" and it returns in a True.
+    if active and show_user:
+        return client.post('/prayer/mine',
+                           data={'{}-body'.format(id): body,
+                                 '{}-active'.format(id): True,
+                                 '{}-show_user'.format(id): True},
+                           follow_redirects=True)
+
+    elif active:
+        return client.post('/prayer/mine',
+                           data={'{}-body'.format(id): body,
+                                 '{}-active'.format(id): True},
+                           follow_redirects=True)
+
+    elif show_user:
+        return client.post('/prayer/mine',
+                           data={'{}-body'.format(id): body,
+                                 '{}-show_user'.format(id): True},
+                           follow_redirects=True)
+
+    else:
+        return client.post('/prayer/mine',
+                           data={'{}-body'.format(id): body},
+                           follow_redirects=True)
 
 
 def del_prayer(client, id):
@@ -463,6 +489,36 @@ def test_access_prayer(client, test_user):
     rv = client.get('/prayer')
 
     assert rv.status_code == 200
+
+
+def test_random_prayer(client):
+    ''' random prayer view '''
+    test_user = TEST_USER[1]
+    prayer = 'Dies ist ein Test!'
+
+    login(client, test_user['email'], test_user['password'])
+    add_prayer(client, prayer)
+
+    # prayer with show_user
+    rv = client.get('/prayer')
+    soup = BeautifulSoup(rv.data)
+
+    assert '{} {}'.format(
+        test_user['vorname'],
+        test_user['name']) == soup.find_all('div',
+                                            class_='panel-heading')[0].text
+
+    # prayer body
+    assert prayer in soup.find_all('div',
+                                   class_='panel-body')[0].text
+
+    # prayer with unabled show_user
+    edit_prayer(client, 1, prayer, active=True)
+    rv = client.get('/prayer')
+    soup = BeautifulSoup(rv.data)
+
+    print soup.find_all('div',
+                        class_='panel-heading')[0].text == ''
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

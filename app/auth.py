@@ -110,7 +110,7 @@ def head_of_group_or_403(group_id):
 def prayer_owner_or_403(prayer_id):
     ''' if user is now the owner of the prayer abort it '''
     # needs to be done to fix some import problem
-    from views import get_prayer
+    from models import get_prayer
 
     prayer = get_prayer(prayer_id)
     if '/api/' in request.path:

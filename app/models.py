@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+import random
 
 
 class News(db.Model):
@@ -117,3 +118,24 @@ class Prayer(db.Model):
         return '<Prayer: user=%r, pub_date=%r>' % (
             self.user,
             self.pub_date)
+
+
+def get_group_metadata(id):
+    return GroupMetadata.query.filter_by(ct_id=id).first()
+
+
+def get_user_metadata(id):
+    return UserMetadata.query.filter_by(ct_id=id).first()
+
+
+def get_random_prayer():
+    ''' returns a random still active prayer '''
+    prayers = Prayer.query.filter_by(active=True).all()
+    if len(prayers) > 0:
+        return random.choice(prayers)
+    else:
+        return None
+
+
+def get_prayer(id):
+    return Prayer.query.get(id)

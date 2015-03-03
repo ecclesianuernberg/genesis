@@ -19,7 +19,6 @@ from flask.ext.login import (
     current_user)
 import os.path
 import uuid
-import random
 
 
 def make_external(url):
@@ -136,16 +135,12 @@ def news():
     pass
 
 
-def get_group_metadata(id):
-    return models.GroupMetadata.query.filter_by(ct_id=id).first()
-
-
 @app.route('/groups')
 @login_required
 def groups():
     ''' groups overview '''
     groups = ct_connect.get_active_groups()
-    groups_metadata = [get_group_metadata(i.id) for i in groups]
+    groups_metadata = [models.get_group_metadata(i.id) for i in groups]
     return render_template('groups.html',
                            groups=enumerate(groups),
                            groups_metadata=groups_metadata)
@@ -159,7 +154,7 @@ def group(id):
     if not group:
         abort(404)
 
-    group_metadata = get_group_metadata(id)
+    group_metadata = models.get_group_metadata(id)
     group_heads = ct_connect.get_group_heads(id)
 
     group_edit = False
@@ -229,24 +224,11 @@ def group(id):
                            mail_form=forms.MailForm())
 
 
-def get_random_prayer():
-    ''' returns a random still active prayer '''
-    prayers = models.Prayer.query.filter_by(active=True).all()
-    if len(prayers) > 0:
-        return random.choice(prayers)
-    else:
-        return None
-
-
-def get_prayer(id):
-    return models.Prayer.query.get(id)
-
-
 @app.route('/prayer')
 @login_required
 def prayer():
     ''' show random prayer '''
-    random_prayer = get_random_prayer()
+    random_prayer = models.get_random_prayer()
     if random_prayer is not None:
         user = ct_connect.get_person(random_prayer.user)[0]
     else:
@@ -300,7 +282,7 @@ def prayer_mine():
 
             if edit_prayer_form.validate():
                 # getting prayer from id
-                prayer = get_prayer(prayer_id)
+                prayer = models.get_prayer(prayer_id)
 
                 prayer.body = edit_prayer_form.body.data
                 prayer.show_user = edit_prayer_form.show_user.data
@@ -325,7 +307,7 @@ def prayer_mine():
 def prayer_del(id):
     auth.prayer_owner_or_403(id)
 
-    prayer = get_prayer(id)
+    prayer = models.get_prayer(id)
 
     try:
         db.session.delete(prayer)
@@ -337,10 +319,6 @@ def prayer_del(id):
         return redirect(url_for('prayer_mine'))
 
 
-def get_user_metadata(id):
-    return models.UserMetadata.query.filter_by(ct_id=id).first()
-
-
 @app.route('/profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 def profile(id):
@@ -350,7 +328,7 @@ def profile(id):
         abort(404)
 
     # geting metadata
-    user_metadata = get_user_metadata(id)
+    user_metadata = models.get_user_metadata(id)
 
     # check if user is allowed to edit profile
     user_edit = False

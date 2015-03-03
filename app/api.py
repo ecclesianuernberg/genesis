@@ -8,7 +8,7 @@ from flask.ext.restful import (
     marshal_with,
     abort)
 from unidecode import unidecode
-from views import get_random_prayer, get_prayer
+from models import get_random_prayer, get_prayer
 from auth import prayer_owner_or_403
 
 

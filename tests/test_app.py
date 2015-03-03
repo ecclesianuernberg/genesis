@@ -536,7 +536,7 @@ def test_add_prayer(client, test_user):
     assert prayer in rv.data
 
     # check db entry
-    db_entry = app.views.get_prayer(1)
+    db_entry = app.models.get_prayer(1)
 
     assert db_entry.body == prayer
     assert db_entry.active is True
@@ -562,7 +562,7 @@ def test_edit_prayer(client, test_user):
     assert prayer in rv.data
 
     # check db entry
-    db_entry = app.views.get_prayer(1)
+    db_entry = app.models.get_prayer(1)
 
     assert db_entry.body == prayer
     assert db_entry.active is False

@@ -42,10 +42,6 @@ class CTUser(UserMixin):
         except:
             return None
 
-    def generate_auth_token(self, expiration=600):
-        s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'id': self.id})
-
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(app.config['SECRET_KEY'])
@@ -64,6 +60,11 @@ class CTUser(UserMixin):
         return user.get_user()
 
 
+def generate_auth_token(user, expiration=600):
+    s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
+    return s.dumps({'id': user['email']})
+
+
 def get_valid_users(user, password):
     ''' creates a list of valid users from user object and given password '''
     return [person
@@ -77,6 +78,7 @@ def verify_password(email_or_token, password):
     ''' basic auth used for api '''
     # check if its a token and if its right
     user = CTUser.verify_auth_token(email_or_token)
+    valid_user = None
 
     if not user:
         user_obj = CTUser(uid=email_or_token, password=password)
@@ -87,7 +89,18 @@ def verify_password(email_or_token, password):
            not user.is_active():
             return False
 
-    g.user = user
+    # returns first valid user in the list. usually there should be only one.
+    # but in a really strange way that its allowed in churchtools that two
+    # persons can have the same email adress and password it can run into
+    # two or more valid users. for a rest api its not possible to switch
+    # between more valid_users. so in this case its always first in list.
+
+    # if user gets authenticated through a token there is now valid_user list
+    if not valid_user:
+        valid_user = [person for person in user.persons]
+
+    g.user = valid_user[0]
+
     return True
 
 
@@ -114,10 +127,12 @@ def prayer_owner_or_403(prayer_id):
 
     prayer = get_prayer(prayer_id)
     if '/api/' in request.path:
-        if prayer.user != g.user.id:
+        if prayer.user != g.user['id']:
             abort_rest(403)
     else:
-        if prayer.user != current_user.get_id():
+        if prayer.user != [user['id']
+                           for user in session['user']
+                           if user['active']][0]:
             abort(403)
 
 

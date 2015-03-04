@@ -96,18 +96,18 @@ class Image(db.Model):
 class Prayer(db.Model):
     __tablename__ = 'prayers'
     id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.String(120))
+    user = db.Column(db.Integer)
     show_user = db.Column(db.Boolean())
     active = db.Column(db.Boolean())
     pub_date = db.Column(db.DateTime())
     body = db.Column(db.String(700))
 
     def __init__(self,
-                 user='',
-                 show_user='',
-                 active='',
-                 pub_date='',
-                 body=''):
+                 user,
+                 show_user,
+                 active,
+                 pub_date,
+                 body):
         self.user = user
         self.show_user = show_user
         self.active = active
@@ -139,3 +139,9 @@ def get_random_prayer():
 
 def get_prayer(id):
     return Prayer.query.get(id)
+
+
+def get_own_prayers(user_id):
+    return Prayer.query.filter_by(
+        user=user_id).order_by(
+            Prayer.pub_date.desc()).all()

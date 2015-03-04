@@ -230,7 +230,7 @@ def prayer():
     ''' show random prayer '''
     random_prayer = models.get_random_prayer()
     if random_prayer is not None:
-        user = ct_connect.get_person(random_prayer.user)[0]
+        user = ct_connect.get_person_from_id(random_prayer.user)[0]
     else:
         user = None
     return render_template('prayer.html',
@@ -243,7 +243,9 @@ def prayer():
 def prayer_add():
     form = forms.AddPrayerForm(active=True)
     if form.validate_on_submit():
-        prayer = models.Prayer(user=current_user.get_id(),
+        prayer = models.Prayer(user=[user['id']
+                                     for user in session['user']
+                                     if user['active']][0],
                                show_user=form.show_user.data,
                                active=form.active.data,
                                pub_date=datetime.utcnow(),
@@ -258,10 +260,10 @@ def prayer_add():
 @app.route('/prayer/mine', methods=['GET', 'POST'])
 @login_required
 def prayer_mine():
+    active_user = [user for user in session['user'] if user['active']][0]
+
     # getting all own prayers
-    prayers = models.Prayer.query.filter_by(
-        user=current_user.get_id()).order_by(
-            models.Prayer.pub_date.desc()).all()
+    prayers = models.get_own_prayers(active_user['id'])
 
     # creating dict with all forms for own prayers
     edit_forms = {}

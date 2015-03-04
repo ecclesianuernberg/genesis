@@ -46,7 +46,7 @@ def client(request):
 
     def fin():
         os.remove(app.app.config['SQLALCHEMY_DATABASE_URI'].split(
-            'sqlite://')[1])
+                  'sqlite://')[1])
 
         # delete temp upload folder
         shutil.rmtree(app.app.config['UPLOAD_FOLDER'])
@@ -272,11 +272,11 @@ def edit_group(client, id, description='', where='', when='', audience=''):
         'audience': audience}, follow_redirects=True)
 
 
-def create_api_creds(test_user):
+def create_api_creds(username, password):
     ''' helper to create creds for api usage '''
     user_password = b'{}:{}'.format(
-        test_user['email'],
-        test_user['password'])
+        username,
+        password)
 
     return base64.b64encode(user_password).decode(
         'utf-8').strip('\r\n')
@@ -286,16 +286,6 @@ def get_api_token(client, creds):
     return client.get('/api/token',
                       headers={'Authorization': 'Basic ' + creds},
                       content_type='application/json')
-
-
-def create_wrong_api_creds(test_user):
-    ''' helper to create creds for api usage '''
-    user_password = b'{}:{}'.format(
-        test_user['email'],
-        'wrongpassword')
-
-    return base64.b64encode(user_password).decode(
-        'utf-8').strip('\r\n')
 
 
 def add_prayer_api(client, body, creds):
@@ -725,7 +715,7 @@ def test_group_data(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_api_token(client, test_user):
     ''' get valid token '''
-    creds = create_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], test_user['password'])
     rv = get_api_token(client, creds)
 
     assert rv.status_code == 200
@@ -736,16 +726,16 @@ def test_api_token(client, test_user):
     assert s.loads(token)['id'] == test_user['email']
 
     # wrong password
-    creds = create_wrong_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], 'wrongpassword')
     rv = get_api_token(client, creds)
 
     assert rv.status_code == 401
 
 
-@pytest.mark.parametrize('test_user', TEST_USER)
+@pytest.mark.parametrize('test_user', TEST_USER[1:2])
 def test_api_add_prayer(client, test_user):
     ''' add prayer through api '''
-    creds = create_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], test_user['password'])
     body = 'Test'
     rv = add_prayer_api(client, body, creds)
 
@@ -759,8 +749,45 @@ def test_api_add_prayer(client, test_user):
     assert data_dict.get('prayer') == 'Test'
 
     # wrong password
-    creds = create_wrong_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], 'wrongpassword')
     body = 'Test'
+    rv = add_prayer_api(client, body, creds)
+
+    assert rv.status_code == 401
+
+    # check db entry
+    db_entry = app.models.get_prayer(1)
+    assert db_entry.id == 1
+    assert db_entry.body == 'Test'
+    assert db_entry.user == test_user['id']
+    assert db_entry.active is True
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_api_add_prayer_token(client, test_user):
+    ''' add prayer through api with a auth token '''
+    # get token
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = get_api_token(client, creds)
+    token = json.loads(rv.data)['token']
+
+    # auth with token
+    creds = create_api_creds(token, 'foo')
+    body = 'Test'
+    rv = add_prayer_api(client, body, creds)
+
+    assert rv.status_code == 200
+
+    # create dict out of json response
+    data_dict = json.loads(rv.data)
+
+    assert data_dict.get('name') == 'anonym'
+    assert data_dict.get('id') == 1
+    assert data_dict.get('prayer') == 'Test'
+
+    # wrong token
+    token = 'wrongtoken'
+    creds = create_api_creds(token, 'foo')
     rv = add_prayer_api(client, body, creds)
 
     assert rv.status_code == 401
@@ -769,7 +796,7 @@ def test_api_add_prayer(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_api_edit_prayer(client, test_user):
     ''' edit prayer through api '''
-    creds = create_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], test_user['password'])
     body = 'Noch ein Test'
     active = True
     show_user = False
@@ -790,7 +817,7 @@ def test_api_edit_prayer(client, test_user):
     assert data_dict.get('prayer') == 'Noch ein Test'
 
     # wrong password
-    creds = create_wrong_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], 'wrongpassword')
     body = 'Test'
     rv = edit_prayer_api(client, 1, body, creds, active, show_user)
 
@@ -800,7 +827,7 @@ def test_api_edit_prayer(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_api_del_prayer(client, test_user):
     ''' delete prayer through api '''
-    creds = create_api_creds(test_user)
+    creds = create_api_creds(test_user['email'], test_user['password'])
 
     # add prayer
     add_prayer_api(client, 'Test', creds)

@@ -9,7 +9,7 @@ from flask.ext.restful import (
     abort)
 from unidecode import unidecode
 from models import get_random_prayer, get_prayer
-from auth import prayer_owner_or_403
+from auth import prayer_owner_or_403, generate_auth_token
 
 
 def get_users_name(email):
@@ -33,7 +33,7 @@ def create_prayer_fields(endpoint):
 @app.route('/api/token')
 @basic_auth.login_required
 def get_auth_token():
-    token = g.user.generate_auth_token()
+    token = generate_auth_token(g.user)
     return jsonify({'token': token.decode('ascii')})
 
 
@@ -83,7 +83,7 @@ class PrayerAPI(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         prayer = models.Prayer(
-            user=g.user.id,
+            user=g.user['id'],
             show_user=args['show_user'],
             active=True,
             pub_date=datetime.utcnow(),

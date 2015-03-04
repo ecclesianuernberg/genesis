@@ -517,8 +517,8 @@ def test_random_prayer(client):
     rv = client.get('/prayer')
     soup = BeautifulSoup(rv.data)
 
-    print soup.find_all('div',
-                        class_='panel-heading')[0].text == ''
+    assert soup.find_all('div',
+                         class_='panel-heading')[0].text == ''
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

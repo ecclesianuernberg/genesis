@@ -83,7 +83,12 @@ def verify_password(email_or_token, password):
     if not user:
         user_obj = CTUser(uid=email_or_token, password=password)
         user = user_obj.get_user()
-        valid_user = get_valid_users(user, password)
+
+        # if it cant even get create a valid_user list it returns a False
+        try:
+            valid_user = get_valid_users(user, password)
+        except:
+            return False
 
         if not valid_user or \
            not user.is_active():

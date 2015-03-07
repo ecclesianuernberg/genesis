@@ -33,10 +33,19 @@ TEST_USER = app.app.config['TEST_USER']
 
 
 @pytest.fixture
-def client(request):
-    # create temp db file
+def db(request):
+    ''' creates tables and drops them for every test '''
     app.db.create_all()
 
+    def fin():
+        app.db.session.commit()
+        app.db.drop_all()
+
+    request.addfinalizer(fin)
+
+
+@pytest.fixture
+def client(db, request):
     # create temp upload folder
     upload_dir = tempfile.mkdtemp()
     app.app.config['UPLOAD_FOLDER'] = upload_dir
@@ -45,9 +54,6 @@ def client(request):
     client = app.app.test_client()
 
     def fin():
-        os.remove(app.app.config['SQLALCHEMY_DATABASE_URI'].split(
-                  'sqlite://')[1])
-
         # delete temp upload folder
         shutil.rmtree(app.app.config['UPLOAD_FOLDER'])
 
@@ -732,7 +738,7 @@ def test_api_token(client, test_user):
     assert rv.status_code == 401
 
 
-@pytest.mark.parametrize('test_user', TEST_USER[1:2])
+@pytest.mark.parametrize('test_user', TEST_USER)
 def test_api_add_prayer(client, test_user):
     ''' add prayer through api '''
     creds = create_api_creds(test_user['email'], test_user['password'])

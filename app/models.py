@@ -74,7 +74,7 @@ class Image(db.Model):
     uuid = db.Column(db.String(120), primary_key=True)
     upload_date = db.Column(db.DateTime())
     upload_to = db.Column(db.String(120))
-    user = db.Column(db.String(120))
+    user = db.Column(db.Integer)
 
     def __init__(self,
                  uuid='',

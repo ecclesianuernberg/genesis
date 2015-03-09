@@ -1060,7 +1060,7 @@ def test_save_image(client, image):
     test_user = app.app.config['TEST_USER'][1]
     rv = app.views.save_image(image,
                               request_path='test',
-                              user=test_user['email'])
+                              user=test_user['id'])
 
     # returns a uuid
     assert rv
@@ -1073,7 +1073,7 @@ def test_save_image(client, image):
     # checks db entries
     image = app.models.Image.query.first()
 
-    assert image.user == test_user['email']
+    assert image.user == test_user['id']
     assert image.upload_to == 'test'
 
 

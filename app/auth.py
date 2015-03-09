@@ -145,3 +145,8 @@ def own_profile_or_403(user_id):
     ''' allowed to view own profile edit form else abort it '''
     if session['user'][0]['id'] != user_id:
         abort(403)
+
+
+def active_user():
+    ''' return the active user out of user session '''
+    return [user for user in session['user'] if user['active']][0]

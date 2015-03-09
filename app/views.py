@@ -192,7 +192,7 @@ def group(id):
                 form.group_image.data.stream.seek(0)
                 group_image = save_image(form.group_image.data.stream,
                                          request_path=request.path,
-                                         user=current_user.get_id())
+                                         user=auth.active_user()['id'])
                 if group_image:
                     group_metadata.image_id = group_image
 
@@ -243,9 +243,7 @@ def prayer():
 def prayer_add():
     form = forms.AddPrayerForm(active=True)
     if form.validate_on_submit():
-        prayer = models.Prayer(user=[user['id']
-                                     for user in session['user']
-                                     if user['active']][0],
+        prayer = models.Prayer(user=auth.active_user()['id'],
                                show_user=form.show_user.data,
                                active=form.active.data,
                                pub_date=datetime.utcnow(),
@@ -260,7 +258,7 @@ def prayer_add():
 @app.route('/prayer/mine', methods=['GET', 'POST'])
 @login_required
 def prayer_mine():
-    active_user = [user for user in session['user'] if user['active']][0]
+    active_user = auth.active_user()
 
     # getting all own prayers
     prayers = models.get_own_prayers(active_user['id'])
@@ -375,7 +373,7 @@ def profile(id):
                 # metadata
                 user_image = save_image(form.user_image.data.stream,
                                         request_path=request.path,
-                                        user=current_user.get_id())
+                                        user=auth.active_user()['id'])
                 if user_image:
                     user_metadata.image_id = user_image
 

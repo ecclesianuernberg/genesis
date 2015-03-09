@@ -37,7 +37,7 @@ class GroupMetadata(db.Model):
                            uselist=False))
     description = db.Column(db.String(700))
 
-    def __init__(self, ct_id=''):
+    def __init__(self, ct_id):
         self.ct_id = ct_id
 
     def __repr__(self):
@@ -59,7 +59,7 @@ class UserMetadata(db.Model):
     twitter = db.Column(db.String(120))
     facebook = db.Column(db.String(120))
 
-    def __init__(self, ct_id=''):
+    def __init__(self, ct_id):
         self.ct_id = ct_id
 
     def __repr__(self):
@@ -77,10 +77,10 @@ class Image(db.Model):
     user = db.Column(db.Integer)
 
     def __init__(self,
-                 uuid='',
-                 upload_date='',
-                 upload_to='',
-                 user=''):
+                 uuid,
+                 upload_date,
+                 upload_to,
+                 user):
         self.uuid = uuid
         self.upload_date = upload_date
         self.upload_to = upload_to

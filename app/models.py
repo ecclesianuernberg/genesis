@@ -45,8 +45,8 @@ class UserMetadata(db.Model):
     bio = db.Column(db.String(700))
     twitter = db.Column(db.String(120))
     facebook = db.Column(db.String(120))
-    images = db.relationship('Image',
-                             backref=db.backref('user'))
+    images = db.relationship('Image', backref=db.backref('user'))
+    prayer = db.relationship('Prayer', backref=db.backref('user'))
 
     def __init__(self, ct_id):
         self.ct_id = ct_id
@@ -85,19 +85,19 @@ class Image(db.Model):
 class Prayer(db.Model):
     __tablename__ = 'prayers'
     id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
     show_user = db.Column(db.Boolean())
     active = db.Column(db.Boolean())
     pub_date = db.Column(db.DateTime())
     body = db.Column(db.String(700))
 
     def __init__(self,
-                 user,
+                 user_id,
                  show_user,
                  active,
                  pub_date,
                  body):
-        self.user = user
+        self.user_id = user_id
         self.show_user = show_user
         self.active = active
         self.pub_date = pub_date
@@ -105,7 +105,7 @@ class Prayer(db.Model):
 
     def __repr__(self):
         return '<Prayer: user=%r, pub_date=%r>' % (
-            self.user,
+            self.user_id,
             self.pub_date)
 
 
@@ -132,5 +132,5 @@ def get_prayer(id):
 
 def get_own_prayers(user_id):
     return Prayer.query.filter_by(
-        user=user_id).order_by(
+        user_id=user_id).order_by(
             Prayer.pub_date.desc()).all()

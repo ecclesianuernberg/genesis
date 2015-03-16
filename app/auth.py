@@ -132,12 +132,12 @@ def prayer_owner_or_403(prayer_id):
 
     prayer = get_prayer(prayer_id)
     if '/api/' in request.path:
-        if prayer.user != g.user['id']:
+        if prayer.user_id != g.user['id']:
             abort_rest(403)
     else:
-        if prayer.user != [user['id']
-                           for user in session['user']
-                           if user['active']][0]:
+        if prayer.user_id != [user['id']
+                              for user in session['user']
+                              if user['active']][0]:
             abort(403)
 
 

@@ -245,7 +245,7 @@ def prayer():
     ''' show random prayer '''
     random_prayer = models.get_random_prayer()
     if random_prayer is not None:
-        user = ct_connect.get_person_from_id(random_prayer.user)[0]
+        user = ct_connect.get_person_from_id(random_prayer.user_id)[0]
     else:
         user = None
     return render_template('prayer.html',
@@ -258,11 +258,20 @@ def prayer():
 def prayer_add():
     form = forms.AddPrayerForm(active=True)
     if form.validate_on_submit():
-        prayer = models.Prayer(user=auth.active_user()['id'],
+        # check if user_metadata exists
+        user_metadata = models.get_user_metadata(auth.active_user()['id'])
+
+        if not user_metadata:
+            metadata = models.UserMetadata(auth.active_user()['id'])
+            db.session.add(metadata)
+            db.session.commit()
+
+        prayer = models.Prayer(user_id=auth.active_user()['id'],
                                show_user=form.show_user.data,
                                active=form.active.data,
                                pub_date=datetime.utcnow(),
                                body=form.body.data)
+
         db.session.add(prayer)
         db.session.commit()
         flash('Gebetsanliegen abgeschickt!', 'success')

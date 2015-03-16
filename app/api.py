@@ -82,12 +82,22 @@ class PrayerAPI(Resource):
     @marshal_with(create_prayer_fields('prayerapi'))
     def post(self):
         args = self.reqparse.parse_args()
+
+        # check if user_metadata exists
+        user_metadata = models.get_user_metadata(g.user['id'])
+
+        if not user_metadata:
+            metadata = models.UserMetadata(g.user['id'])
+            db.session.add(metadata)
+            db.session.commit()
+
         prayer = models.Prayer(
-            user=g.user['id'],
+            user_id=g.user['id'],
             show_user=args['show_user'],
             active=True,
             pub_date=datetime.utcnow(),
             body=args['body'])
+
         db.session.add(prayer)
         db.session.commit()
 

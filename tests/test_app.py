@@ -804,7 +804,7 @@ def test_api_add_prayer(client, test_user):
     db_entry = app.models.get_prayer(1)
     assert db_entry.id == 1
     assert db_entry.body == 'Test'
-    assert db_entry.user == test_user['id']
+    assert db_entry.user_id == test_user['id']
     assert db_entry.active is True
 
 

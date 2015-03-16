@@ -38,7 +38,7 @@ def create_thumbnail(in_file, out_file):
     thumb.save(out_file)
 
 
-def save_image(image, request_path, user):
+def save_image(image, request_path, user_id):
     ''' saves image, creates thumbnail and save it to the db '''
     try:
         image_uuid = str(uuid.uuid4())
@@ -63,12 +63,19 @@ def save_image(image, request_path, user):
                 app.config['UPLOAD_FOLDER'],
                 image_uuid + '-thumb.jpg'))
 
+        # check if user_metadata exists
+        user_metadata = models.get_user_metadata(user_id)
+
+        if not user_metadata:
+            metadata = models.UserMetadata(user_id)
+            db.session.add(metadata)
+
         # generate image db entry
         image = models.Image(
             uuid=image_uuid,
             upload_date=datetime.utcnow(),
             upload_to=request_path,
-            user=user)
+            user_id=user_id)
 
         db.session.add(image)
         db.session.commit()
@@ -192,9 +199,9 @@ def group(id):
                 form.group_image.data.stream.seek(0)
                 group_image = save_image(form.group_image.data.stream,
                                          request_path=request.path,
-                                         user=auth.active_user()['id'])
+                                         user_id=auth.active_user()['id'])
                 if group_image:
-                    group_metadata.image_id = group_image
+                    group_metadata.avatar_id = group_image
 
                 # save to metadata db
                 db.session.commit()
@@ -373,9 +380,9 @@ def profile(id):
                 # metadata
                 user_image = save_image(form.user_image.data.stream,
                                         request_path=request.path,
-                                        user=auth.active_user()['id'])
+                                        user_id=auth.active_user()['id'])
                 if user_image:
-                    user_metadata.image_id = user_image
+                    user_metadata.avatar_id = user_image
 
                 user_metadata.bio = form.bio.data
                 user_metadata.twitter = form.twitter.data

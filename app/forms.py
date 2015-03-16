@@ -31,9 +31,7 @@ class EditGroupForm(Form):
     audience = StringField('Zielgruppe')
 
     # metadata
-    description = PageDownField(
-        'Beschreibung',
-        validators=[validators.DataRequired()])
+    description = PageDownField('Beschreibung')
     group_image = FileField(
         'Bild',
         validators=[FileAllowed(['jpg'], 'Nur JPGs')])

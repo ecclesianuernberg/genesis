@@ -15,7 +15,6 @@ import pytest
 from config import config
 from app import ct_connect, auth, mailing
 from datetime import datetime
-from cStringIO import StringIO
 from itsdangerous import (
     TimedJSONWebSignatureSerializer as Serializer)
 from passlib.hash import bcrypt
@@ -267,15 +266,16 @@ def del_prayer(client, id):
                       follow_redirects=True)
 
 
-def edit_group(client, id, description='', where='', when='', audience=''):
+def edit_group(client, id, description, where, when, audience, image):
     ''' helper to edit group '''
-    return client.post('/group/{}'.format(id), data={
-        'description': description,
-        'group_image': (StringIO('hi everyone'),
-                        'test.jpg'),
-        'where': where,
-        'when': when,
-        'audience': audience}, follow_redirects=True)
+    with open(image) as f:
+        return client.post('/group/{}'.format(id),
+                           data={'description': description,
+                                 'group_image': (f, 'test.jpg'),
+                                 'where': where,
+                                 'when': when,
+                                 'audience': audience},
+                           follow_redirects=True)
 
 
 def create_api_creds(username, password):
@@ -328,19 +328,20 @@ def edit_profile(client,
                  bio,
                  password,
                  twitter,
-                 facebook):
-    return client.post('/profile/{}'.format(id),
-                       data={'street': street,
-                             'postal_code': postal_code,
-                             'city': city,
-                             'bio': bio,
-                             'twitter': twitter,
-                             'facebook': facebook,
-                             'password': password,
-                             'confirm': password,
-                             'user_image': (StringIO('hi everyone'),
-                                            'test.jpg')},
-                       follow_redirects=True)
+                 facebook,
+                 image):
+    with open(image) as f:
+        return client.post('/profile/{}'.format(id),
+                           data={'street': street,
+                                 'postal_code': postal_code,
+                                 'city': city,
+                                 'bio': bio,
+                                 'twitter': twitter,
+                                 'facebook': facebook,
+                                 'password': password,
+                                 'confirm': password,
+                                 'user_image': (f, 'test.jpg')},
+                           follow_redirects=True)
 
 
 def send_mail(client, url, subject, body):
@@ -618,6 +619,8 @@ def test_group_list(client, test_user):
     for data in group_data:
         assert data in rv.data
 
+    assert 'avatar-thumb.png' in rv.data
+
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_access_group(client, test_user):
@@ -642,7 +645,7 @@ def test_access_group(client, test_user):
                           for i in ct_connect.get_active_groups()
                           for j in ct_connect.get_group_heads(i.id)
                           if j.id == 118])
-def test_group_edit_allowed(client, reset_ct_group, own_group):
+def test_group_edit_allowed(client, reset_ct_group, own_group, image):
     ''' user can edit groups he is head of '''
     test_user = TEST_USER[0]
 
@@ -657,7 +660,11 @@ def test_group_edit_allowed(client, reset_ct_group, own_group):
                     description='Dies ist ein Test',
                     where='In der Ecclesia',
                     when='Jeden Sonntag',
-                    audience='Jeder')
+                    audience='Jeder',
+                    image=image)
+
+    # db entry
+    avatar_id = app.models.GroupMetadata.query.first().avatar_id
 
     assert rv.status_code == 200
     assert 'Dies ist ein Test' in rv.data
@@ -665,6 +672,14 @@ def test_group_edit_allowed(client, reset_ct_group, own_group):
     assert 'In der Ecclesia' in rv.data
     assert 'Jeden Sonntag' in rv.data
     assert 'Jeder' in rv.data
+    assert '{}.jpg'.format(avatar_id) in rv.data
+
+    # check group overview
+    rv = client.get('/groups')
+
+    assert '{}-thumb.jpg'.format(avatar_id) in rv.data
+    assert 'In der Ecclesia' in rv.data
+    assert 'Jeden Sonntag' in rv.data
 
 
 @pytest.mark.parametrize(
@@ -672,7 +687,7 @@ def test_group_edit_allowed(client, reset_ct_group, own_group):
     [i.id
      for i in ct_connect.get_active_groups()
      if 118 not in [j.id for j in ct_connect.get_group_heads(i.id)]])
-def test_group_edit_forbidden(client, not_own_group):
+def test_group_edit_forbidden(client, not_own_group, image):
     ''' user cant edit groups he isnt head of '''
     test_user = TEST_USER[0]
 
@@ -682,7 +697,13 @@ def test_group_edit_forbidden(client, not_own_group):
           test_user['password'])
 
     # edit
-    rv = edit_group(client, not_own_group, description='Dies ist ein Test')
+    rv = edit_group(client,
+                    not_own_group,
+                    description='Dies ist ein Test',
+                    where='In der Ecclesia',
+                    when='Jeden Sonntag',
+                    audience='Jeder',
+                    image=image)
 
     assert rv.status_code == 403
 
@@ -924,6 +945,7 @@ def test_access_profile(client, test_user):
     assert rv.status_code == 200
     assert '<h1>{} {}'.format(
         test_user['vorname'], test_user['name']) in rv.data
+    assert 'avatar.png' in rv.data
 
     # not exisiting profile
     rv = client.get('/profile/7777')
@@ -943,7 +965,7 @@ def test_edit_profile_button(client, test_user):
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
-def test_edit_profile(client, reset_ct_user, test_user):
+def test_edit_profile(client, reset_ct_user, test_user, image):
     ''' edit profile '''
     login(client, test_user['email'], test_user['password'])
 
@@ -964,16 +986,26 @@ def test_edit_profile(client, reset_ct_user, test_user):
                       bio=bio,
                       password=password,
                       twitter=twitter,
-                      facebook=facebook)
+                      facebook=facebook,
+                      image=image)
 
     assert rv.status_code == 200
     assert 'Profil geaendert' in rv.data
+
+    # test user_metadata
+    user_metadata = app.models.get_user_metadata(test_user['id'])
+
+    assert user_metadata.bio == bio
+    assert user_metadata.twitter == twitter
+    assert user_metadata.facebook == facebook
+    assert user_metadata.avatar_id is not None
 
     # test profile page
     assert city in rv.data
     assert bio in rv.data
     assert twitter in rv.data
     assert facebook in rv.data
+    assert '{}.jpg'.format(user_metadata.avatar_id) in rv.data
 
     # test churchtools db entries
     ct_person = ct_connect.get_person_from_id(test_user['id'])[0]
@@ -996,7 +1028,8 @@ def test_edit_profile(client, reset_ct_user, test_user):
                       bio=bio,
                       password=password,
                       twitter=twitter,
-                      facebook=facebook)
+                      facebook=facebook,
+                      image=image)
 
     # not allowed
     assert rv.status_code == 403
@@ -1045,6 +1078,9 @@ def test_image_resize(image):
 
     assert rv.size == (800, 800)
 
+    # delete outfile
+    os.remove(img_out)
+
 
 def test_create_thumbnail(image):
     img_out = '{}.jpg'.format(tempfile.mktemp())
@@ -1060,7 +1096,7 @@ def test_save_image(client, image):
     test_user = app.app.config['TEST_USER'][1]
     rv = app.views.save_image(image,
                               request_path='test',
-                              user=test_user['id'])
+                              user_id=test_user['id'])
 
     # returns a uuid
     assert rv
@@ -1073,7 +1109,7 @@ def test_save_image(client, image):
     # checks db entries
     image = app.models.Image.query.first()
 
-    assert image.user == test_user['id']
+    assert image.user_id == test_user['id']
     assert image.upload_to == 'test'
 
 

@@ -10,11 +10,6 @@ class News(db.Model):
     title = db.Column(db.String(120))
     body = db.Column(db.String(700))
     pub_date = db.Column(db.DateTime())
-    image_id = db.Column(db.String(120), db.ForeignKey('images.uuid'))
-    image = db.relationship(
-        'Image',
-        backref=db.backref('news',
-                           uselist=False))
 
     def __init__(self, pub_date=None):
         if pub_date is None:
@@ -30,11 +25,7 @@ class News(db.Model):
 class GroupMetadata(db.Model):
     __tablename__ = 'group_metadata'
     ct_id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.String(120), db.ForeignKey('images.uuid'))
-    image = db.relationship(
-        'Image',
-        backref=db.backref('group',
-                           uselist=False))
+    avatar_id = db.Column(db.String(120))
     description = db.Column(db.String(700))
 
     def __init__(self, ct_id):
@@ -50,14 +41,12 @@ class GroupMetadata(db.Model):
 class UserMetadata(db.Model):
     __tablename__ = 'user_metadata'
     ct_id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.String(120), db.ForeignKey('images.uuid'))
-    image = db.relationship(
-        'Image',
-        backref=db.backref('user_profile',
-                           uselist=False))
+    avatar_id = db.Column(db.String(120))
     bio = db.Column(db.String(700))
     twitter = db.Column(db.String(120))
     facebook = db.Column(db.String(120))
+    images = db.relationship('Image',
+                             backref=db.backref('user'))
 
     def __init__(self, ct_id):
         self.ct_id = ct_id
@@ -74,17 +63,17 @@ class Image(db.Model):
     uuid = db.Column(db.String(120), primary_key=True)
     upload_date = db.Column(db.DateTime())
     upload_to = db.Column(db.String(120))
-    user = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
 
     def __init__(self,
                  uuid,
                  upload_date,
                  upload_to,
-                 user):
+                 user_id):
         self.uuid = uuid
         self.upload_date = upload_date
         self.upload_to = upload_to
-        self.user = user
+        self.user_id = user_id
 
     def __repr__(self):
         return '<Image %r>' % self.uuid

@@ -8,8 +8,8 @@
 		<div class="panel-body">
 			<div class="pull-left">
 				<a href="{{ url_for('group', id=group.id) }}">
-					{% if groups_metadata[index].image_id %}
-					<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ groups_metadata[index].image_id }}-thumb.jpg" class="img-responsive img-thumbnail">
+					{% if groups_metadata[index].avatar_id %}
+					<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ groups_metadata[index].avatar_id }}-thumb.jpg" class="img-responsive img-thumbnail">
 					{% else %}
 					<img src="{{ url_for('.static', filename='images/avatar-thumb.png') }}" class="img-responsive img-thumbnail">
 					{% endif %}

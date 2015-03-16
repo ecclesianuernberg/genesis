@@ -15,8 +15,8 @@
 	{% endwith %}
 
 	<p class="text-center">
-		{% if group_metadata.image_id %}
-		<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ group_metadata.image_id }}.jpg" class="img-responsive img-circle center-block">
+		{% if group_metadata.avatar_id %}
+		<img src="{{ url_for('.static', filename='uploaded_images') }}/{{ group_metadata.avatar_id }}.jpg" class="img-responsive img-circle center-block">
 		{% else %}
 		<img src="{{ url_for('.static', filename='images/avatar.png') }}" class="img-responsive img-circle center-block">
 		{% endif %}

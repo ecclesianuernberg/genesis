@@ -87,6 +87,7 @@ def save_image(image, request_path, user_id):
 
 
 @app.route('/')
+@login_required
 def index():
     return render_template(
         'index.html',
@@ -109,7 +110,11 @@ def login():
 
         user_obj = auth.CTUser(uid=email, password=password)
         user = user_obj.get_user()
-        valid_user = auth.get_valid_users(user, password)
+
+        if user:
+            valid_user = auth.get_valid_users(user, password)
+        else:
+            valid_user = None
 
         if valid_user and user.is_active():
             if login_user(user, remember=True):
@@ -121,12 +126,15 @@ def login():
 
                 flash('Erfolgreich eingeloggt!', 'success')
                 return redirect(url_for('index'))
+
             else:
                 flash('Konnte nicht eingeloggt werden!', 'danger')
                 return redirect(url_for('login'))
+
         else:
             flash('Konnte nicht eingeloggt werden!', 'danger')
             return redirect(url_for('login'))
+
     return render_template('login.html', form=form)
 
 
@@ -134,7 +142,7 @@ def login():
 def logout():
     logout_user()
     flash('Erfolgreich ausgeloggt!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('login'))
 
 
 @app.route('/news')

@@ -15,13 +15,15 @@ from flask.ext.pagedown.fields import PageDownField
 class LoginForm(Form):
     email = StringField(
         'Email',
+        description='Email',
         validators=[validators.DataRequired(),
                     validators.Email()])
     password = PasswordField(
         'Password',
+        description='Password',
         validators=[validators.DataRequired()])
 
-    submit = SubmitField('Submit')
+    submit = SubmitField('Login')
 
 
 class EditGroupForm(Form):

@@ -361,6 +361,9 @@ def test_login(client, test_user):
         assert 'Erfolgreich eingeloggt!' in rv.data
         assert flask.session['user'][0]['active'] is True
 
+    # wrong username and password
+    rv = login(client, 'foo@bar.com', 'bar')
+
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_logout(client, test_user):
@@ -468,6 +471,21 @@ def test_ct_change_user_password(test_user):
 
     # reset password
     ct_connect.change_user_password(test_user['id'], test_user['password'])
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_access_index(client, test_user):
+    # logged out
+    rv = client.get('/')
+    assert rv.status_code == 302
+
+    # logged in
+    login(client,
+          test_user['email'],
+          test_user['password'])
+
+    rv = client.get('/')
+    assert rv.status_code == 200
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

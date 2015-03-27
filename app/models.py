@@ -39,6 +39,11 @@ class GroupMetadata(db.Model):
     def __unicode__(self):
         return unicode(self.ct_id)
 
+    @property
+    def ct_data(self):
+        ''' returns group data from the churchtools db '''
+        return ct_connect.get_group(self.ct_id)[0]
+
 
 class UserMetadata(db.Model):
     __tablename__ = 'user_metadata'

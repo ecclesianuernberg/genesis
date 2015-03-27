@@ -12,6 +12,7 @@ import shutil
 import base64
 import json
 import pytest
+import feedparser
 from config import config
 from app import ct_connect, auth, mailing
 from datetime import datetime
@@ -22,6 +23,8 @@ from PIL import Image
 from random import choice
 from unidecode import unidecode
 from bs4 import BeautifulSoup
+from time import sleep
+from werkzeug.exceptions import NotFound
 
 
 # loading config
@@ -349,6 +352,43 @@ def send_mail(client, url, subject, body):
                        data={'subject': subject,
                              'body': body},
                        follow_redirects=True)
+
+
+def add_whatsup_post(client, subject, body):
+    return client.post('/whatsup',
+                       data={'subject': subject,
+                             'body': body},
+                       follow_redirects=True)
+
+
+def add_whatsup_upvote(client, id):
+    return client.get('/whatsup/{}/upvote'.format(id),
+                      follow_redirects=True)
+
+
+def add_whatsup_comment(client, id, body):
+    return client.post('/whatsup/{}'.format(id),
+                       data={'body': body},
+                       follow_redirects=True)
+
+
+def edit_whatsup_post(client, id, subject, body):
+    return client.post('/whatsup/mine',
+                       data={'{}-subject'.format(id): subject,
+                             '{}-body'.format(id): body},
+                       follow_redirects=True)
+
+
+def get_whatsup_feed_posts(client, creds):
+    return client.get('/feeds/whatsup.atom',
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')
+
+
+def get_whatsup_feed_comments(client, creds):
+    return client.get('/feeds/whatsup-comments.atom',
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -1224,3 +1264,244 @@ def test_mail(client, test_user):
         assert outbox[0].recipients == recipients
         assert outbox[0].subject == subject
         assert body in outbox[0].body
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_overview(client, test_user):
+    # logged out
+    rv = client.get('/whatsup')
+    assert rv.status_code == 302
+
+    add_whatsup_post(client, 'subject1', 'body1')
+
+    with pytest.raises(NotFound):
+        app.models.get_whatsup_post(1)
+
+    # logged in
+    login(client, test_user['email'], test_user['password'])
+
+    # access overview
+    rv = client.get('/whatsup')
+    assert rv.status_code == 200
+
+    # create post
+    rv = add_whatsup_post(client, 'subject1', 'body1')
+    assert 'Post abgeschickt!' in rv.data
+
+    # database entries
+    rv = app.models.get_whatsup_post(1)
+    assert rv.user_id == test_user['id']
+    assert rv.subject == 'subject1'
+    assert rv.body == 'body1'
+
+    # add some more posts
+    sleep(1)
+    add_whatsup_post(client, 'subject2', 'body2')
+    sleep(1)
+    add_whatsup_post(client, 'subject3', 'body3')
+    sleep(1)
+    add_whatsup_post(client, 'subject4', 'body4')
+
+    # checks if its 4 db entries
+    assert len(app.models.WhatsUp.query.all()) == 4
+
+    # checking the order of posts on overview UNVOTED
+    rv = client.get('/whatsup')
+    soup = BeautifulSoup(rv.data)
+
+    h4s = soup.find_all('h4', class_='media-heading')
+
+    assert 'subject4' in h4s[0].text
+    assert 'subject3' in h4s[1].text
+    assert 'subject2' in h4s[2].text
+    assert 'subject1' in h4s[3].text
+
+    # upvote
+    rv = add_whatsup_upvote(client, 1)
+    soup = BeautifulSoup(rv.data)
+
+    h4s = soup.find_all('h4', class_='media-heading')
+
+    # subject1 is now first in overview list
+    assert 'subject1' in h4s[0].text
+
+    # try to upvote for subject1 again. it should get ignored
+    add_whatsup_upvote(client, 1)
+
+    # upvotes entries stayed 1
+    assert len(app.models.get_whatsup_post(1).upvotes) == 1
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_post(client, test_user):
+    # add post
+    login(client, test_user['email'], test_user['password'])
+    add_whatsup_post(client, 'subject', 'body')
+
+    # logout and try to access it
+    logout(client)
+    rv = client.get('/whatsup/1')
+
+    assert rv.status_code == 302
+
+    # login again
+    login(client, test_user['email'], test_user['password'])
+
+    # add comment
+    rv = add_whatsup_comment(client, 1, 'comment1')
+
+    assert rv.status_code == 200
+    assert 'Kommentar abgeschickt!' in rv.data
+
+    # database entries
+    rv = app.models.get_whatsup_post(1)
+
+    assert rv.comments[0].body == 'comment1'
+    assert rv.comments[0].post_id == 1
+    assert rv.comments[0].user_id == test_user['id']
+
+    # add 3 more comments
+    sleep(1)
+    add_whatsup_comment(client, 1, 'comment2')
+    sleep(1)
+    add_whatsup_comment(client, 1, 'comment3')
+    sleep(1)
+    add_whatsup_comment(client, 1, 'comment4')
+
+    assert len(app.models.get_whatsup_post(1).comments) == 4
+
+    # create soup
+    rv = client.get('/whatsup/1')
+    soup = BeautifulSoup(rv.data)
+
+    rv = soup.find_all('div', class_='media-body')
+
+    # discussion icon counter
+    assert '4' in rv[0].text
+
+    # checking comment order
+    assert 'comment4' in rv[1].text
+    assert 'comment3' in rv[2].text
+    assert 'comment2' in rv[3].text
+    assert 'comment1' in rv[4].text
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_mine(client, test_user):
+    # logged out
+    rv = client.get('/whatsup/mine')
+
+    assert rv.status_code == 302
+
+    # log in
+    login(client, test_user['email'], test_user['password'])
+    rv = client.get('/whatsup/mine')
+
+    assert rv.status_code == 200
+
+    # add posts
+    add_whatsup_post(client, 'subject1', 'body1')
+    sleep(1)
+    add_whatsup_post(client, 'subject2', 'body2')
+
+    rv = client.get('/whatsup/mine')
+    soup = BeautifulSoup(rv.data)
+
+    rv = soup.find_all('div', class_='panel-body')
+
+    # order of own posts
+    assert 'body2' in rv[0].text
+    assert 'body1' in rv[1].text
+
+    rv = edit_whatsup_post(client, 2, 'newsubject2', 'newbody2')
+
+    # check flash message
+    assert 'Post veraendert!' in rv.data
+
+    soup = BeautifulSoup(rv.data)
+    rv = soup.find_all('div', class_='panel-body')
+
+    # changed body
+    assert 'newbody2' in rv[0].text
+
+    # changed subject
+    rv = soup.find_all('h4')
+
+    assert 'newsubject2' in rv[0].text
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_feed_posts(client, test_user):
+    # prepare everything
+    login(client, test_user['email'], test_user['password'])
+    add_whatsup_post(client, 'subject1', 'body1')
+    sleep(1)
+    add_whatsup_post(client, 'subject2', 'body2')
+    logout(client)
+
+    # logged out
+    rv = client.get('/feeds/whatsup.atom')
+
+    # not allowed
+    assert rv.status_code == 401
+
+    # logged in
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = get_whatsup_feed_posts(client, creds)
+
+    assert rv.status_code == 200
+
+    # parse feed
+    rv = feedparser.parse(rv.data)
+
+    assert rv['feed']['title'] == 'Recent WhatsUp Posts'
+    assert rv.entries[0].title == 'subject2'
+    assert rv.entries[1].title == 'subject1'
+    assert rv.entries[0].content[0]['value'] == 'body2'
+    assert rv.entries[1].content[0]['value'] == 'body1'
+    assert rv.entries[0].author == '{} {}'.format(
+        unidecode(test_user['vorname'].decode('utf-8')),
+        unidecode(test_user['name'].decode('utf-8')))
+    assert rv.entries[1].author == '{} {}'.format(
+        unidecode(test_user['vorname'].decode('utf-8')),
+        unidecode(test_user['name'].decode('utf-8')))
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_feed_comments(client, test_user):
+    # prepare everything
+    login(client, test_user['email'], test_user['password'])
+    add_whatsup_post(client, 'subject1', 'body1')
+    sleep(1)
+    add_whatsup_comment(client, 1, 'comment1')
+    sleep(1)
+    add_whatsup_comment(client, 1, 'comment2')
+    logout(client)
+
+    # logged out
+    rv = client.get('/feeds/whatsup-comments.atom')
+
+    # not allowed
+    assert rv.status_code == 401
+
+    # logged in
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = get_whatsup_feed_comments(client, creds)
+
+    assert rv.status_code == 200
+
+    # parse feed
+    rv = feedparser.parse(rv.data)
+
+    assert rv['feed']['title'] == 'Recent WhatsUp Comments'
+    assert rv.entries[0].title == 'Kommentar fuer "subject1" von {} {}'.format(
+        unidecode(test_user['vorname'].decode('utf-8')),
+        unidecode(test_user['name'].decode('utf-8')))
+    assert rv.entries[0].content[0]['value'] == 'comment2'
+    assert rv.entries[1].content[0]['value'] == 'comment1'
+    assert rv.entries[0].author == '{} {}'.format(
+        unidecode(test_user['vorname'].decode('utf-8')),
+        unidecode(test_user['name'].decode('utf-8')))
+    assert rv.entries[1].author == '{} {}'.format(
+        unidecode(test_user['vorname'].decode('utf-8')),
+        unidecode(test_user['name'].decode('utf-8')))

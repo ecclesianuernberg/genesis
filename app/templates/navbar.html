@@ -11,12 +11,20 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-			<a class="navbar-brand" href="{{ url_for('index') }}"><img src="{{ url_for('.static', filename='images/logo-trans.png') }}" alt=""> ECCLESIA N&Uuml;RNBERG</a>
+			<a class="navbar-brand" href="{{ url_for('index') }}"><img src="{{ url_for('.static', filename='images/logo-trans.png') }}" alt=""></a>
     </div>
 
     <!-- Collect the nav links, forms, and other content for toggling -->
-    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+    <div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
 			<ul class="nav navbar-nav">
+
+				<li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">DISCUSS<span class="caret"></span></a>
+						<ul class="dropdown-menu" role="menu">
+							<li><a href="{{ url_for('.whatsup_overview') }}">WhatsUp</a></li>
+						</ul>
+				</li>
+
 				<li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">GEBETSANLIEGEN<span class="caret"></span></a>
 						<ul class="dropdown-menu" role="menu">
@@ -28,7 +36,6 @@
 
 				<li><a href="{{ url_for('.groups') }}">KLEINGRUPPEN</a></li>
 
-				{% if current_user.is_authenticated() %}
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">PROFIL<span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
@@ -37,7 +44,6 @@
 						{% endfor %}
           </ul>
         </li>
-				{% endif %}
 
       </ul>
     </div><!-- /.navbar-collapse -->

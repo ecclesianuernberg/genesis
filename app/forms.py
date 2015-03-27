@@ -15,12 +15,10 @@ from flask.ext.pagedown.fields import PageDownField
 class LoginForm(Form):
     email = StringField(
         'Email',
-        description='Email',
         validators=[validators.DataRequired(),
                     validators.Email()])
     password = PasswordField(
         'Password',
-        description='Password',
         validators=[validators.DataRequired()])
 
     submit = SubmitField('Login')
@@ -33,7 +31,8 @@ class EditGroupForm(Form):
     audience = StringField('Zielgruppe')
 
     # metadata
-    description = PageDownField('Beschreibung')
+    description = PageDownField('Beschreibung',
+                                validators=[validators.Length(max=700)])
     group_image = FileField(
         'Bild',
         validators=[FileAllowed(['jpg'], 'Nur JPGs')])
@@ -87,19 +86,7 @@ class EditIndexForm(Form):
 class AddPrayerForm(Form):
     body = PageDownField(
         '',
-        validators=[validators.DataRequired()])
-
-    show_user = BooleanField('Name anzeigen')
-
-    active = BooleanField('Aktiv')
-
-    submit = SubmitField('Submit')
-
-
-class EditPrayerForm(Form):
-    body = PageDownField(
-        '',
-        validators=[validators.DataRequired()])
+        validators=[validators.DataRequired(), validators.Length(max=700)])
 
     show_user = BooleanField('Name anzeigen')
 
@@ -124,8 +111,8 @@ class EditProfileForm(Form):
     city = StringField('Ort')
 
     # metadata
-    bio = PageDownField(
-        'Bio')
+    bio = PageDownField('Bio',
+                        validators=[validators.Length(max=700)])
 
     user_image = FileField(
         'Bild',
@@ -151,5 +138,25 @@ class MailForm(Form):
     body = TextAreaField(
         'Nachricht',
         validators=[validators.DataRequired()])
+
+    submit = SubmitField('Submit')
+
+
+class AddWhatsUp(Form):
+    subject = StringField('Subject',
+                          validators=[validators.DataRequired(),
+                                      validators.Length(max=120)])
+
+    body = TextAreaField('Body',
+                         validators=[validators.DataRequired(),
+                                     validators.Length(max=700)])
+
+    submit = SubmitField('Submit')
+
+
+class AddWhatsUpComment(Form):
+    body = TextAreaField('Kommentar',
+                         validators=[validators.DataRequired(),
+                                     validators.Length(max=700)])
 
     submit = SubmitField('Submit')

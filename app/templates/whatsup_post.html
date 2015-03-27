@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block content %}
+<div class="container">
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+			<div class="alert alert-{{ category }}">
+				<button type="button" class="close" data-dismiss="alert">&times;</button>
+				<strong>{{ message }}</strong>
+			</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
+
+	<h1>{{ post.subject }}</h1>
+
+	<p class="text-center">
+		<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#CommentModal"><i class="fa fa-plus"></i> Neuer Kommentar</button>
+	</p>
+
+	<ul class="media-list">
+		<li class="media">
+			<div class="media-left">
+				<a href="{{ url_for('profile', id=post.user_id) }}">
+					{% if post.user.avatar_id %}
+					<img class="media-object" src="{{ url_for('.static', filename='uploaded_images') }}/{{ post.user.avatar_id }}-thumb.jpg">
+					{% else %}
+					<img class="media-object" src="{{ url_for('.static', filename='images/avatar-thumb.png') }}">
+					{% endif %}
+				</a>
+				<div class="text-center">
+					<small>
+						{{ moment(post.pub_date).fromNow() }}
+					</small>
+				</div>
+			</div>
+			<div class="media-body">
+
+				<h4 class="media-heading">
+					{{ post.subject }}
+					<small>
+						{{ post.user.ct_data.vorname }} {{ post.user.ct_data.name }}
+						&nbsp;|&nbsp;
+						{% if post.did_i_upvote() %}
+						<i class="fa fa-heart"></i>{{ post.upvotes|length }}
+						{% else %}
+						<a href="{{ url_for('whatsup_upvote', id=post.id) }}"><i class="fa fa-heart-o"></i></a>{{ post.upvotes|length }}
+						{% endif %}
+						&nbsp;|&nbsp;
+						{% if post.did_i_comment() %}
+						<i class="fa fa-comment"></i>{{ post.comments|length }}
+						{% else %}
+						<i class="fa fa-comment-o"></i>{{ post.comments|length }}
+						{% endif %}
+					</small>
+				</h4>
+
+				{{ post.body }}
+
+			</div>
+		</li>
+
+		{% for comment in post.comments %}
+		<a name="comment{{ comment.id }}">
+		<li class="media">
+
+			<div class="media-left">
+				<a href="{{ url_for('profile', id=comment.user_id) }}">
+					{% if comment.user.avatar_id %}
+					<img class="media-object" src="{{ url_for('.static', filename='uploaded_images') }}/{{ comment.user.avatar_id }}-thumb.jpg" width="100" height="100">
+					{% else %}
+					<img class="media-object" src="{{ url_for('.static', filename='images/avatar-thumb.png') }}" width="100" height="100">
+					{% endif %}
+				</a>
+				<div class="text-center">
+					<small>
+						{{ moment(comment.pub_date).fromNow() }}
+					</small>
+				</div>
+			</div>
+
+			<div class="media-body">
+				<h4 class="media-heading">
+					<small>{{ comment.user.ct_data.vorname }} {{ comment.user.ct_data.name }}</small>
+				</h4>
+				{{ comment.body }}
+			</div>
+
+		</li>
+		{% endfor %}
+
+	</ul>
+</div>
+
+<!-- Comment Modal -->
+<div class="modal fade" id="CommentModal" tabindex="-1" role="dialog" aria-labelledby="CommentModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Add</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(form, button_map={'submit': 'primary'}) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ super() }}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+	{{ moment.include_moment() }}
+	<script>
+		var formErrors = {% if form.errors %}true{% else%}false{% endif %}
+		$(document).ready(function() {
+			if (formErrors) {
+				$('#CommentModal').modal('show');
+			}
+		});
+	</script>
+{% endblock %}

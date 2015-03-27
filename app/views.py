@@ -1,5 +1,4 @@
 from app import app, db, forms, models, auth, ct_connect, mailing
-from datetime import datetime
 from urlparse import urljoin
 from PIL import Image, ImageOps
 from passlib.hash import bcrypt
@@ -19,6 +18,7 @@ from flask.ext.login import (
     current_user)
 import os.path
 import uuid
+import datetime
 
 
 def make_external(url):
@@ -73,7 +73,7 @@ def save_image(image, request_path, user_id):
         # generate image db entry
         image = models.Image(
             uuid=image_uuid,
-            upload_date=datetime.utcnow(),
+            upload_date=datetime.datetime.utcnow(),
             upload_to=request_path,
             user_id=user_id)
 
@@ -269,7 +269,7 @@ def prayer_add():
         prayer = models.Prayer(user_id=auth.active_user()['id'],
                                show_user=form.show_user.data,
                                active=form.active.data,
-                               pub_date=datetime.utcnow(),
+                               pub_date=datetime.datetime.utcnow(),
                                body=form.body.data)
 
         db.session.add(prayer)
@@ -290,7 +290,7 @@ def prayer_mine():
     # creating dict with all forms for own prayers
     edit_forms = {}
     for prayer in prayers:
-        edit_forms[prayer.id] = forms.EditPrayerForm(
+        edit_forms[prayer.id] = forms.AddPrayerForm(
             prefix=str(prayer.id),
             body=prayer.body,
             show_user=prayer.show_user,
@@ -479,3 +479,164 @@ def mail(profile_or_group, id):
             return redirect(url_for(profile_or_group, id=id))
 
     return render_template('mail.html', form=form)
+
+
+@app.route('/whatsup', methods=['GET', 'POST'])
+@login_required
+def whatsup_overview():
+    posts = models.get_whatsup_overview()
+
+    form = forms.AddWhatsUp()
+
+    if form.validate_on_submit():
+        try:
+            user_id = auth.active_user()['id']
+
+            # check if user_metadata exists
+            user_metadata = models.get_user_metadata(user_id)
+
+            if not user_metadata:
+                metadata = models.UserMetadata(user_id)
+                db.session.add(metadata)
+                db.session.commit()
+
+            # create post
+            new_post = models.WhatsUp(user_id=user_id,
+                                      pub_date=datetime.datetime.utcnow(),
+                                      active=datetime.datetime.utcnow(),
+                                      subject=form.subject.data,
+                                      body=form.body.data)
+
+            db.session.add(new_post)
+            db.session.commit()
+
+            flash('Post abgeschickt!', 'success')
+            return redirect(url_for('whatsup_overview'))
+
+        except:
+            flash('Fehler aufgetreten!', 'danger')
+            return redirect(url_for('whatsup_overview'))
+
+    return render_template('whatsup_overview.html',
+                           posts=posts,
+                           form=form)
+
+
+@app.route('/whatsup/<int:id>/upvote')
+@login_required
+def whatsup_upvote(id):
+    post = models.get_whatsup_post(id)
+
+    # if already voted just redirect to overview
+    if post.did_i_upvote():
+        return redirect(url_for('whatsup_overview'))
+
+    user_id = auth.active_user()['id']
+
+    # check if user_metadata exists
+    user_metadata = models.get_user_metadata(user_id)
+
+    if not user_metadata:
+        metadata = models.UserMetadata(user_id)
+        db.session.add(metadata)
+        db.session.commit()
+
+    # create upvote
+    upvote = models.WhatsUpUpvote(post_id=id,
+                                  user_id=user_id)
+
+    # set active to now
+    post.active = datetime.datetime.utcnow()
+
+    # write to db
+    db.session.add(upvote)
+    db.session.add(post)
+    db.session.commit()
+
+    return redirect(url_for('whatsup_overview'))
+
+
+@app.route('/whatsup/<int:id>', methods=['GET', 'POST'])
+@login_required
+def whatsup_post(id):
+    post = models.get_whatsup_post(id)
+    form = forms.AddWhatsUpComment()
+
+    if form.validate_on_submit():
+        try:
+            user_id = auth.active_user()['id']
+
+            # check if user_metadata exists
+            user_metadata = models.get_user_metadata(user_id)
+
+            if not user_metadata:
+                metadata = models.UserMetadata(user_id)
+                db.session.add(metadata)
+                db.session.commit()
+
+            # add comment
+            comment = models.WhatsUpComment(
+                post_id=id,
+                user_id=user_id,
+                pub_date=datetime.datetime.utcnow(),
+                body=form.body.data)
+
+            db.session.add(comment)
+            db.session.commit()
+
+            flash('Kommentar abgeschickt!', 'success')
+            return redirect(url_for('whatsup_post', id=id))
+
+        except:
+            flash('Fehler aufgetreten!', 'danger')
+            return redirect(url_for('whatsup_post', id=id))
+
+    return render_template('whatsup_post.html', post=post, form=form)
+
+
+@app.route('/whatsup/mine', methods=['GET', 'POST'])
+@login_required
+def whatsup_mine():
+    active_user = auth.active_user()
+
+    # getting all own posts
+    posts = models.get_own_whatsup_posts(active_user['id'])
+
+    # creating a dict with all edit forms
+    edit_forms = {}
+    for post in posts:
+        edit_forms[post.id] = forms.AddWhatsUp(
+            prefix=str(post.id),
+            subject=post.subject,
+            body=post.body)
+
+    if request.method == 'POST':
+        # extract id out of form id
+        post_id = int(list(request.form)[0].split('-')[0])
+
+        # getting right form out of post form dict
+        edit_post_form = edit_forms[post_id]
+
+        if edit_post_form.validate():
+            try:
+                # getting post
+                post = models.get_whatsup_post(post_id)
+
+                # chaning db entry
+                post.subject = edit_post_form.subject.data
+                post.body = edit_post_form.body.data
+                post.active = datetime.datetime.utcnow()
+
+                # save to db
+                db.session.commit()
+
+                flash('Post veraendert!', 'success')
+                return redirect(url_for('whatsup_mine'))
+
+            except:
+                flash('Es ist ein Fehler aufgetreten!', 'danger')
+                return redirect(url_for('post_mine'))
+
+    return render_template('whatsup_mine.html',
+                           posts=posts,
+                           edit_forms=edit_forms)

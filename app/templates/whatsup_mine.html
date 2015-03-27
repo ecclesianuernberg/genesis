@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block content %}
+<div class="container">
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+			<div class="alert alert-{{ category }}">
+				<button type="button" class="close" data-dismiss="alert">&times;</button>
+				<strong>{{ message }}</strong>
+			</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
+	<h1 class="text-center"><small>meine</small> WhatsUp <small>posts</small></h1>
+	{% for post in posts %}
+	<div class="panel panel-default">
+		<div class="panel-heading">{{ moment(post.pub_date).fromNow() }}</div>
+		<div class="panel-body">
+			<h4>{{ post.subject }}</h4>
+			{{ post.body }}
+			<p class="text-right">
+				<button type="button" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#Post{{ post.id }}Modal"><i class="fa fa-pencil"></i> edit</button>
+			</p>
+		</div>
+	</div>
+	{% endfor %}
+</div>
+
+{% for id, form in edit_forms.iteritems() %}
+<!-- Edit Post {{ id }} Modal -->
+<div class="modal fade" id="Post{{ id }}Modal" tabindex="-1" role="dialog" aria-labelledby="Post{{ id }}ModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Edit</h4>
+      </div>
+      <div class="modal-body">
+				{{ wtf.quick_form(form, button_map={id|string + '-submit': 'primary'}) }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{{ super() }}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+	{{ moment.include_moment() }}
+{% endblock %}

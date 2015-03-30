@@ -24,6 +24,23 @@ class News(db.Model):
         return self.title
 
 
+class FrontPage(db.Model):
+    __tablename__ = 'frontpage'
+    id = db.Column(db.Integer, primary_key=True)
+
+    first_row_image = db.Column(db.String(120))
+    first_row_link = db.Column(db.String(120))
+
+    second_row_image = db.Column(db.String(120))
+    second_row_link = db.Column(db.String(120))
+
+    third_row_left_image = db.Column(db.String(120))
+    third_row_left_link = db.Column(db.String(120))
+
+    third_row_right_image = db.Column(db.String(120))
+    third_row_right_link = db.Column(db.String(120))
+
+
 class GroupMetadata(db.Model):
     __tablename__ = 'group_metadata'
     ct_id = db.Column(db.Integer, primary_key=True)

@@ -20,6 +20,7 @@ class MyView(ModelView):
 
 
 admin = Admin(app)
+admin.add_view(MyView(models.FrontPage, db.session))
 admin.add_view(MyView(models.News, db.session))
 admin.add_view(MyView(models.GroupMetadata, db.session))
 admin.add_view(MyView(models.UserMetadata, db.session))

@@ -83,21 +83,95 @@ def save_image(image, request_path, user_id):
         return image_uuid
 
     except:
-        pass
+        return None
 
 
 @app.route('/')
 @login_required
 def index():
-    return render_template(
-        'index.html',
-        edit_url=make_external('edit'))
+    frontpage = models.FrontPage.query.all()[-1:]
+
+    # if there is at least one frontpage
+    if frontpage:
+        return render_template('index.html', frontpage=frontpage[-1])
+    # else just abort it
+    else:
+        return render_template('index.html', frontpage=None)
 
 
 @app.route('/edit', methods=['GET', 'POST'])
 @login_required
 def index_edit():
-    form = forms.EditIndexForm()
+    if current_user.get_id() != 'xsteadfastx@gmail.com':
+        abort(405)
+
+    frontpage = models.FrontPage.query.all()[-1:]
+
+    if not frontpage:
+        new_frontpage = models.FrontPage()
+        db.session.add(new_frontpage)
+
+        frontpage = models.FrontPage.query.all()[-1:]
+
+    # prefill form
+    form = forms.EditIndexForm(
+        first_row_link=frontpage[0].first_row_link,
+        second_row_link=frontpage[0].second_row_link,
+        third_row_left_link=frontpage[0].third_row_left_link,
+        third_row_right_link=frontpage[0].third_row_right_link)
+
+    # on submit
+    if form.validate_on_submit():
+        try:
+            frontpage = models.FrontPage(
+                first_row_link=form.first_row_link.data,
+                second_row_link=form.second_row_link.data,
+                third_row_left_link=form.third_row_left_link.data,
+                third_row_right_link=form.third_row_right_link.data)
+
+            # handle uploaded images
+            form.first_row_image.data.stream.seek(0)
+            image = save_image(
+                image=form.first_row_image.data.stream,
+                request_path=request.path,
+                user_id=auth.active_user()['id'])
+            if image:
+                frontpage.first_row_image = image
+
+            form.second_row_image.data.stream.seek(0)
+            image = save_image(
+                image=form.second_row_image.data.stream,
+                request_path=request.path,
+                user_id=auth.active_user()['id'])
+            if image:
+                frontpage.second_row_image = image
+
+            form.third_row_left_image.data.stream.seek(0)
+            image = save_image(
+                image=form.third_row_left_image.data.stream,
+                request_path=request.path,
+                user_id=auth.active_user()['id'])
+            if image:
+                frontpage.third_row_left_image = image
+
+            form.third_row_right_image.data.stream.seek(0)
+            image = save_image(
+                image=form.third_row_right_image.data.stream,
+                request_path=request.path,
+                user_id=auth.active_user()['id'])
+            if image:
+                frontpage.third_row_right_image = image
+
+            db.session.add(frontpage)
+            db.session.commit()
+
+            flash('Index veraendert!', 'success')
+            return redirect(url_for('index'))
+
+        except:
+            flash('Es ist ein Fehler aufgetreten!', 'danger')
+            return redirect(url_for('index_edit'))
+
     return render_template('index_edit.html', form=form)
 
 

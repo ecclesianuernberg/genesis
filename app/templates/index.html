@@ -12,24 +12,28 @@
 			{% endfor %}
 		{% endif %}
 	{% endwith %}
+	{% if frontpage is none %}
+	<p>Nothing here</p>
+	{% else %}
 	<div class="row top-buffer">
 		<div class="col-xs-12">
-			<img src="{{ url_for('static', filename="images/front_first_row.jpg") }}" class="img-responsive full-width">
+			<a href="{{ frontpage.first_row_link }}"><img src="{{ url_for('static', filename='uploaded_images') }}/{{ frontpage.first_row_image }}.jpg" class="img-responsive full-width"></a>
 		</div>
 	</div>
 	<div class="row top-buffer">
 		<div class="col-xs-12">
-			<img src="{{ url_for('static', filename="images/front_second_row.jpg") }}" class="img-responsive full-width">
+			<a href="{{ frontpage.second_row_link }}"><img src="{{ url_for('static', filename='uploaded_images') }}/{{ frontpage.second_row_image }}.jpg" class="img-responsive full-width"></a>
 		</div>
 	</div>
 	<div class="row top-buffer">
 		<div class="col-xs-6">
-			<img src="{{ url_for('static', filename="images/front_third_row_left.jpg") }}" class="img-responsive full-width">
+			<a href="{{ frontpage.third_row_left_link }}"><img src="{{ url_for('static', filename='uploaded_images') }}/{{ frontpage.third_row_left_image }}.jpg" class="img-responsive full-width"></a>
 		</div>
 		<div class="col-xs-6">
-			<img src="{{ url_for('static', filename="images/front_third_row_right.jpg") }}" class="img-responsive full-width">
+			<a href="{{ frontpage.third_row_right_link }}"><img src="{{ url_for('static', filename='uploaded_images') }}/{{ frontpage.third_row_right_image }}.jpg" class="img-responsive full-width"></a>
 		</div>
 	</div>
+	{% endif %}
 </div>
 {{ super() }}
 {% endblock %}

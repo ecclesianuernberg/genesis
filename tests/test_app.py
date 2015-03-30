@@ -391,6 +391,24 @@ def get_whatsup_feed_comments(client, creds):
                       content_type='application/json')
 
 
+def edit_index(client,
+               image,
+               first_row_link,
+               second_row_link,
+               third_row_left_link,
+               third_row_right_link):
+    return client.post('/edit',
+                       data={'first_row_link': first_row_link,
+                             'first_row_image': (open(image), '1.jpg'),
+                             'second_row_link': second_row_link,
+                             'second_row_image': (open(image), '2.jpg'),
+                             'third_row_left_link': third_row_left_link,
+                             'third_row_left_image': (open(image), '3.jpg'),
+                             'third_row_right_link': third_row_right_link,
+                             'third_row_right_image': (open(image), '4.jpg')},
+                       follow_redirects=True)
+
+
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_login(client, test_user):
     ''' login user'''
@@ -1505,3 +1523,63 @@ def test_whatsup_feed_comments(client, test_user):
     assert rv.entries[1].author == '{} {}'.format(
         unidecode(test_user['vorname'].decode('utf-8')),
         unidecode(test_user['name'].decode('utf-8')))
+
+
+def test_edit_index(client, image):
+    # logged out
+    rv = client.get('/edit')
+
+    assert rv.status_code == 302
+
+    # wrong user
+    test_user = TEST_USER[1]
+    login(client, test_user['email'], test_user['password'])
+    rv = client.get('/edit')
+
+    assert rv.status_code == 405
+
+    logout(client)
+
+    # right user
+    test_user = TEST_USER[0]
+    login(client, test_user['email'], test_user['password'])
+
+    rv = client.get('/edit')
+
+    assert rv.status_code == 200
+
+    rv = edit_index(client,
+                    image,
+                    'http://eins.com',
+                    'http://zwei.com',
+                    'http://drei.com',
+                    'http://vier.com')
+
+    # check db
+    rv = app.models.FrontPage.query.all()[-1]
+
+    assert rv.first_row_image is not None
+    assert rv.first_row_link == 'http://eins.com'
+    assert rv.second_row_image is not None
+    assert rv.second_row_link == 'http://zwei.com'
+    assert rv.third_row_left_image is not None
+    assert rv.third_row_left_link == 'http://drei.com'
+    assert rv.third_row_right_image is not None
+    assert rv.third_row_right_link == 'http://vier.com'
+
+    # check rendered page
+    first_row_image = rv.first_row_image
+    second_row_image = rv.second_row_image
+    third_row_left_image = rv.third_row_left_image
+    third_row_right_image = rv.third_row_right_image
+
+    rv = client.get('/')
+
+    assert 'http://eins.com' in rv.data
+    assert '{}.jpg'.format(first_row_image) in rv.data
+    assert 'http://zwei.com' in rv.data
+    assert '{}.jpg'.format(second_row_image) in rv.data
+    assert 'http://drei.com' in rv.data
+    assert '{}.jpg'.format(third_row_left_image) in rv.data
+    assert 'http://vier.com' in rv.data
+    assert '{}.jpg'.format(third_row_right_image) in rv.data

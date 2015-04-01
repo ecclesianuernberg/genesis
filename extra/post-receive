@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# place this git hook script in /srv/git/genesis/hooks/
+#
+DEPLOY_DIR=/srv/www/genesis
+WEB_USER=www-data
+
+while read oldrev newrev refname
+do
+    branch=$(git rev-parse --symbolic --abbrev-ref $refname)
+    if [ "master" == "$branch" ]; then
+        GIT_WORK_TREE="$DEPLOY_DIR" git checkout -f master
+	git symbolic-ref HEAD refs/heads/devel
+	virtualenv $DEPLOY_DIR/env
+	$DEPLOY_DIR/env/bin/pip install -r $DEPLOY_DIR/requirements.txt
+	chown -Rv $WEB_USER:$WEB_USER $DEPLOY_DIR
+	cd $DEPLOY_DIR
+	$DEPLOY_DIR/env/bin/python $DEPLOY_DIR/manage.py db upgrade
+	service apache2 reload
+    fi
+done

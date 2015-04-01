@@ -23,8 +23,8 @@
 	<h1>{{ user.vorname }} {{ user.name }} {% if user.ort %}<small>{{ user.ort }}</small>{% endif %}</h1>
 	<p class="text-center">
 		<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#MailModal"><i class="fa fa-envelope"></i> email</button>
-		{% if user_metadata.twitter %}<a href="{{ user_metadata.twitter }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-twitter"></i> twitter</button></a>{% endif %}
-		{% if user_metadata.facebook %}<a href="{{ user_metadata.facebook }}"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-facebook"></i> facebook</button></a>{% endif %}
+		{% if user_metadata.twitter %}<a href="{{ user_metadata.twitter }}" target="_blank"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-twitter"></i> twitter</button></a>{% endif %}
+		{% if user_metadata.facebook %}<a href="{{ user_metadata.facebook }}" target="_blank"><button type="button" class="btn btn-primary btn-xs"><i class="fa fa-facebook"></i> facebook</button></a>{% endif %}
 		{% if user_edit %}<button type="button" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#EditModal"><i class="fa fa-pencil"></i> edit</button>{% endif %}
 	</p>
 	{% if user_metadata.bio %}

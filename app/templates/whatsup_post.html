@@ -17,6 +17,7 @@
 	<h1>{{ post.subject }}</h1>
 
 	<p class="text-center">
+		<a href="{{ url_for('whatsup_overview') }}"><button type="button" class="btn btn-warning btn-xs"><i class="fa fa-arrow-circle-left"></i> &Uuml;bersicht</button></a>
 		<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#CommentModal"><i class="fa fa-plus"></i> Neuer Kommentar</button>
 	</p>
 

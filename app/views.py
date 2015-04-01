@@ -25,6 +25,10 @@ def make_external(url):
     return urljoin(request.url_root, url)
 
 
+def redirect_url(default='index'):
+    return request.referrer or url_for(default)
+
+
 def image_resize(in_file, out_file, size=800):
     img = Image.open(in_file)
     img.thumbnail((size, size), Image.ANTIALIAS)
@@ -609,7 +613,7 @@ def whatsup_upvote(id):
 
     # if already voted just redirect to overview
     if post.did_i_upvote():
-        return redirect(url_for('whatsup_overview'))
+        return redirect(redirect_url(default='whatsup_overview'))
 
     user_id = auth.active_user()['id']
 
@@ -633,7 +637,7 @@ def whatsup_upvote(id):
     db.session.add(post)
     db.session.commit()
 
-    return redirect(url_for('whatsup_overview'))
+    return redirect(redirect_url(default='whatsup_overview'))
 
 
 @app.route('/whatsup/<int:id>', methods=['GET', 'POST'])

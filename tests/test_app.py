@@ -1141,7 +1141,7 @@ def test_profile_session_active_state(client, ct_same_username_and_password):
 
         # go to a profile that doesnt belong to test user.
         # active state shouldnt have changed
-        c.get('/profile/1')
+        c.get('/profile/{}'.format(TEST_USER[0]['id']))
 
         assert flask.session['user'][0]['active'] is False
         assert flask.session['user'][1]['active'] is True

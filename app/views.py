@@ -431,11 +431,12 @@ def profile(id):
     # check if user is allowed to edit profile
     user_edit = False
     for session_user in session['user']:
-        if session_user['id'] in [i.id for i in user]:
+        if session_user['id'] == id:
             user_edit = True
             session_user['active'] = True
+
         else:
-            session_user['active'] = False
+            pass
 
     # if someone is trying to make a POST request and user_edit is False
     # abort with a 403 status
@@ -448,6 +449,11 @@ def profile(id):
 
     # this is for editing users own profile
     if user_edit:
+        # set other users in session['user'] inactive
+        for session_user in session['user']:
+            if session_user['id'] != id:
+                session_user['active'] = False
+
         # if there is no user_metadata db entry define it
         if not user_metadata:
             user_metadata = models.UserMetadata(ct_id=id)

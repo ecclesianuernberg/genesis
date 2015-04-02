@@ -23,6 +23,20 @@ else:
 
 app.config.from_object(config[flask_config])
 
+# logging
+if not app.debug and not app.testing:
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    file_handler = RotatingFileHandler('/var/log/genesis/genesis.log')
+    file_handler.setLevel(logging.DEBUG)
+
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s '
+        '[in %(pathname)s:%(lineno)d]'))
+
+    app.logger.addHandler(file_handler)
+
 # Bootstrap
 Bootstrap(app)
 app.extensions['bootstrap']['cdns']['jquery'] = WebCDN(

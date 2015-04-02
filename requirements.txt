@@ -16,7 +16,7 @@ Flask-WTF==0.10.2
 Jinja2==2.7.3
 Mako==1.0.0
 MarkupSafe==0.23
-Pillow==2.5.3
+Pillow==2.8.0
 PyMySQL==0.6.2
 SQLAlchemy==0.9.7
 Unidecode==0.04.16

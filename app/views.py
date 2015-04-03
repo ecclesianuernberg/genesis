@@ -90,6 +90,14 @@ def save_image(image, request_path, user_id):
         return None
 
 
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    logout_user()
+
+    return redirect(url_for('login'))
+
+
 @app.route('/')
 @login_required
 def index():

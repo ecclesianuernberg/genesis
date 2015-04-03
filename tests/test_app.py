@@ -360,8 +360,8 @@ def send_mail(client, url, subject, body):
                        follow_redirects=True)
 
 
-def add_whatsup_post(client, subject, body):
-    return client.post('/whatsup',
+def add_whatsup_post(client, subject, body, url='/whatsup'):
+    return client.post(url,
                        data={'subject': subject,
                              'body': body},
                        follow_redirects=True)
@@ -1372,6 +1372,73 @@ def test_whatsup_overview(client, test_user):
 
     # subject1 is now first in overview list
     assert 'subject1' in h4s[0].text
+
+    # try to upvote for subject1 again. it should get ignored
+    add_whatsup_upvote(client, 1)
+
+    # upvotes entries stayed 1
+    assert len(app.models.get_whatsup_post(1).upvotes) == 1
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_overview_new(client, test_user):
+    # logged out
+    rv = client.get('/whatsup/new')
+    assert rv.status_code == 302
+
+    add_whatsup_post(client, 'subject1', 'body1')
+
+    with pytest.raises(NotFound):
+        app.models.get_whatsup_post(1)
+
+    # logged in
+    login(client, test_user['email'], test_user['password'])
+
+    # access overview
+    rv = client.get('/whatsup/new')
+    assert rv.status_code == 200
+
+    # create post
+    rv = add_whatsup_post(client, 'subject1', 'body1', url='/whatsup/new')
+    assert 'Post abgeschickt!' in rv.data
+
+    # database entries
+    rv = app.models.get_whatsup_post(1)
+    assert rv.user_id == test_user['id']
+    assert rv.subject == 'subject1'
+    assert rv.body == 'body1'
+
+    # add some more posts
+    sleep(1)
+    add_whatsup_post(client, 'subject2', 'body2', url='/whatsup/new')
+    sleep(1)
+    add_whatsup_post(client, 'subject3', 'body3', url='/whatsup/new')
+    sleep(1)
+    add_whatsup_post(client, 'subject4', 'body4', url='/whatsup/new')
+
+    # checks if its 4 db entries
+    assert len(app.models.WhatsUp.query.all()) == 4
+
+    # checking the order of posts on overview UNVOTED
+    rv = client.get('/whatsup/new')
+    soup = BeautifulSoup(rv.data)
+
+    h4s = soup.find_all('h4', class_='media-heading')
+
+    assert 'subject4' in h4s[0].text
+    assert 'subject3' in h4s[1].text
+    assert 'subject2' in h4s[2].text
+    assert 'subject1' in h4s[3].text
+
+    # upvote
+    add_whatsup_upvote(client, 1)
+    rv = client.get('/whatsup/new')
+    soup = BeautifulSoup(rv.data)
+
+    h4s = soup.find_all('h4', class_='media-heading')
+
+    # subject4 is still first in overview list
+    assert 'subject4' in h4s[0].text
 
     # try to upvote for subject1 again. it should get ignored
     add_whatsup_upvote(client, 1)

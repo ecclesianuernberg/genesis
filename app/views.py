@@ -584,6 +584,7 @@ def mail(profile_or_group, id):
 @app.route('/whatsup', methods=['GET', 'POST'])
 @login_required
 def whatsup_overview():
+    ''' overview with some metric about how many upvotes a post has '''
     posts = models.get_whatsup_overview()
 
     form = forms.AddWhatsUp()
@@ -611,15 +612,60 @@ def whatsup_overview():
             db.session.commit()
 
             flash('Post abgeschickt!', 'success')
-            return redirect(url_for('whatsup_overview'))
+            return redirect(redirect_url(default='whatsup_overview'))
 
         except:
             flash('Fehler aufgetreten!', 'danger')
-            return redirect(url_for('whatsup_overview'))
+            return redirect(redirect_url(default='whatsup_overview'))
 
     # ct_data needs a db session to access the ct database
     with ct_connect.session_scope() as ct_session:
         return render_template('whatsup_overview.html',
+                               posts=posts,
+                               form=form,
+                               ct_session=ct_session)
+
+
+@app.route('/whatsup/new', methods=['GET', 'POST'])
+@login_required
+def whatsup_overview_new():
+    ''' ignore all upvotes. just show newest 20 posts '''
+    posts = models.get_latest_whatsup_posts(20)
+
+    form = forms.AddWhatsUp()
+
+    if form.validate_on_submit():
+        try:
+            user_id = auth.active_user()['id']
+
+            # check if user_metadata exists
+            user_metadata = models.get_user_metadata(user_id)
+
+            if not user_metadata:
+                metadata = models.UserMetadata(user_id)
+                db.session.add(metadata)
+                db.session.commit()
+
+            # create post
+            new_post = models.WhatsUp(user_id=user_id,
+                                      pub_date=datetime.datetime.utcnow(),
+                                      active=datetime.datetime.utcnow(),
+                                      subject=form.subject.data,
+                                      body=form.body.data)
+
+            db.session.add(new_post)
+            db.session.commit()
+
+            flash('Post abgeschickt!', 'success')
+            return redirect(redirect_url(default='whatsup_overview_new'))
+
+        except:
+            flash('Fehler aufgetreten!', 'danger')
+            return redirect(redirect_url(default='whatsup_overview_new'))
+
+    # ct_data needs a db session to access the ct database
+    with ct_connect.session_scope() as ct_session:
+        return render_template('whatsup_overview_new.html',
                                posts=posts,
                                form=form,
                                ct_session=ct_session)

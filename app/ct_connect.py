@@ -10,7 +10,7 @@ from passlib.hash import bcrypt
 
 URI = app.config['SQLALCHEMY_CT_DATABASE_URI']
 BASE = declarative_base()
-ENGINE = create_engine(URI, echo=False)
+ENGINE = create_engine(URI, echo=False, pool_recycle=3600)
 METADATA = MetaData(bind=ENGINE)
 Session = sessionmaker(bind=ENGINE)
 SESSION = Session()

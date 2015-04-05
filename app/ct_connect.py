@@ -2,8 +2,11 @@ from app import app
 from sqlalchemy import (
     create_engine,
     MetaData,
-    Table)
+    Table,
+    exc,
+    event)
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import Pool
 from sqlalchemy.ext.declarative import declarative_base
 from passlib.hash import bcrypt
 
@@ -14,6 +17,16 @@ ENGINE = create_engine(URI, echo=False, pool_recycle=3600)
 METADATA = MetaData(bind=ENGINE)
 Session = sessionmaker(bind=ENGINE)
 SESSION = Session()
+
+
+@event.listens_for(Pool, 'checkout')
+def ping_connection(dbapi_connection, connection_record, connection_proxy):
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute('SELECT 1')
+    except:
+        raise exc.DisconnectError()
+    cursor.close()
 
 
 class Person(BASE):

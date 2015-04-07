@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from app import app, models, basic_auth
+from app import app, ct_connect, models, basic_auth
 from app.views import make_external
 from flask import request
 from werkzeug.contrib.atom import AtomFeed
@@ -14,14 +14,16 @@ def whatsup_recent_posts():
 
     posts = models.get_latest_whatsup_posts(15)
 
-    for post in posts:
-        feed.add(post.subject,
-                 unicode(post.body),
-                 content_type='text',
-                 author='{} {}'.format(unidecode(post.user.ct_data.vorname),
-                                       unidecode(post.user.ct_data.name)),
-                 url=make_external('/whatsup/{}'.format(post.id)),
-                 updated=post.pub_date)
+    with ct_connect.session_scope() as ct_session:
+        for post in posts:
+            feed.add(post.subject,
+                     unicode(post.body),
+                     content_type='text',
+                     author='{} {}'.format(
+                         unidecode(post.user.ct_data(ct_session).vorname),
+                         unidecode(post.user.ct_data(ct_session).name)),
+                     url=make_external('/whatsup/{}'.format(post.id)),
+                     updated=post.pub_date)
 
     return feed.get_response()
 
@@ -34,20 +36,21 @@ def whatsup_recent_comments():
 
     comments = models.get_latest_whatsup_comments(15)
 
-    for comment in comments:
-        feed.add(
-            'Kommentar fuer "{}" von {} {}'.format(
-                comment.post.subject,
-                unidecode(comment.user.ct_data.vorname),
-                unidecode(comment.user.ct_data.name)),
-            unicode(comment.body),
-            content_type='text',
-            author='{} {}'.format(
-                unidecode(comment.user.ct_data.vorname),
-                unidecode(comment.user.ct_data.name)),
-            url=make_external('whatsup/{}#comment{}'.format(
-                comment.post.id,
-                comment.id)),
-            updated=comment.pub_date)
+    with ct_connect.session_scope() as ct_session:
+        for comment in comments:
+            feed.add(
+                'Kommentar fuer "{}" von {} {}'.format(
+                    comment.post.subject,
+                    unidecode(comment.user.ct_data(ct_session).vorname),
+                    unidecode(comment.user.ct_data(ct_session).name)),
+                unicode(comment.body),
+                content_type='text',
+                author='{} {}'.format(
+                    unidecode(comment.user.ct_data(ct_session).vorname),
+                    unidecode(comment.user.ct_data(ct_session).name)),
+                url=make_external('whatsup/{}#comment{}'.format(
+                    comment.post.id,
+                    comment.id)),
+                updated=comment.pub_date)
 
     return feed.get_response()

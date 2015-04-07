@@ -42,7 +42,7 @@
 				<h4 class="media-heading">
 					{{ post.subject }}
 					<small>
-						{{ post.user.ct_data.vorname }} {{ post.user.ct_data.name }}
+						{{ post.user.ct_data(ct_session).vorname }} {{ post.user.ct_data(ct_session).name }}
 						&nbsp;|&nbsp;
 						{% if post.did_i_upvote() %}
 						<i class="fa fa-heart"></i>{{ post.upvotes|length }}
@@ -84,7 +84,7 @@
 
 			<div class="media-body">
 				<h4 class="media-heading">
-					<small>{{ comment.user.ct_data.vorname }} {{ comment.user.ct_data.name }}</small>
+					<small>{{ comment.user.ct_data(ct_session).vorname }} {{ comment.user.ct_data(ct_session).name }}</small>
 				</h4>
 				{{ comment.body }}
 			</div>

@@ -240,103 +240,109 @@ def news():
 @login_required
 def groups():
     ''' groups overview '''
-    groups = ct_connect.get_active_groups()
-    groups_metadata = [models.get_group_metadata(i.id) for i in groups]
-    return render_template('groups.html',
-                           groups=enumerate(groups),
-                           groups_metadata=groups_metadata)
+    with ct_connect.session_scope() as ct_session:
+        groups = ct_connect.get_active_groups(ct_session)
+
+        groups_metadata = [models.get_group_metadata(i.id) for i in groups]
+        return render_template('groups.html',
+                               groups=enumerate(groups),
+                               groups_metadata=groups_metadata)
 
 
 @app.route('/group/<int:id>', methods=['GET', 'POST'])
 @login_required
 def group(id):
     ''' show group '''
-    group = ct_connect.get_group(id)
-    if not group:
-        abort(404)
+    with ct_connect.session_scope() as ct_session:
+        group = ct_connect.get_group(ct_session, id)
+        if not group:
+            abort(404)
 
-    group_metadata = models.get_group_metadata(id)
-    group_heads = ct_connect.get_group_heads(id)
+        group_metadata = models.get_group_metadata(id)
+        group_heads = ct_connect.get_group_heads(ct_session, id)
 
-    group_edit = False
-    if current_user.get_id() in [i.email for i in group_heads]:
-        group_edit = True
+        group_edit = False
+        if current_user.get_id() in [i.email for i in group_heads]:
+            group_edit = True
 
-    # if someone is trying to make a POST request and group_edit is False
-    # abort with a 403 status
-    if request.method == 'POST' and group_edit is False:
-        abort(403)
+        # if someone is trying to make a POST request and group_edit is False
+        # abort with a 403 status
+        if request.method == 'POST' and group_edit is False:
+            abort(403)
 
-    # set form to None that there is something to send to the template
-    # if logged in user is not allowed to edit group
-    form = None
+        # set form to None that there is something to send to the template
+        # if logged in user is not allowed to edit group
+        form = None
 
-    if group_edit:
-        if not group_metadata:
-            group_metadata = models.GroupMetadata(ct_id=id)
-            db.session.add(group_metadata)
+        if group_edit:
+            if not group_metadata:
+                group_metadata = models.GroupMetadata(ct_id=id)
+                db.session.add(group_metadata)
 
-        # prefill form with db data
-        form = forms.EditGroupForm(
-            description=group_metadata.description,
-            where=group.treffpunkt,
-            when=group.treffzeit,
-            audience=group.zielgruppe)
+            # prefill form with db data
+            form = forms.EditGroupForm(
+                description=group_metadata.description,
+                where=group.treffpunkt,
+                when=group.treffzeit,
+                audience=group.zielgruppe)
 
-        # clicked submit
-        if form.validate_on_submit():
-            try:
-                # metadata
-                group_metadata.description = form.description.data
+            # clicked submit
+            if form.validate_on_submit():
+                try:
+                    # metadata
+                    group_metadata.description = form.description.data
 
-                # save image and set the image db true
-                form.group_image.data.stream.seek(0)
-                group_image = save_image(form.group_image.data.stream,
-                                         request_path=request.path,
-                                         user_id=auth.active_user()['id'])
-                if group_image:
-                    group_metadata.avatar_id = group_image
+                    # save image and set the image db true
+                    form.group_image.data.stream.seek(0)
+                    group_image = save_image(form.group_image.data.stream,
+                                             request_path=request.path,
+                                             user_id=auth.active_user()['id'])
+                    if group_image:
+                        group_metadata.avatar_id = group_image
 
-                # save to metadata db
-                db.session.commit()
+                    # save to metadata db
+                    db.session.commit()
 
-                # churchtools
-                group.treffpunkt = form.where.data
-                group.treffzeit = form.when.data
-                group.zielgruppe = form.audience.data
+                    # churchtools
+                    group.treffpunkt = form.where.data
+                    group.treffzeit = form.when.data
+                    group.zielgruppe = form.audience.data
 
-                # save data to churchtools db
-                ct_connect.SESSION.add(group)
-                ct_connect.SESSION.commit()
+                    # save data to churchtools db
+                    ct_session.add(group)
+                    ct_session.commit()
 
-                flash('Gruppe geaendert!', 'success')
-                return redirect(url_for('group', id=id))
+                    flash('Gruppe geaendert!', 'success')
+                    return redirect(url_for('group', id=id))
 
-            except:
-                flash('Fehler aufgetreten!', 'danger')
-                return redirect(url_for('group', id=id))
+                except:
+                    flash('Fehler aufgetreten!', 'danger')
+                    return redirect(url_for('group', id=id))
 
-    return render_template('group.html',
-                           group=group,
-                           group_metadata=group_metadata,
-                           group_heads=group_heads,
-                           group_edit=group_edit,
-                           form=form,
-                           mail_form=forms.MailForm())
+        return render_template('group.html',
+                               group=group,
+                               group_metadata=group_metadata,
+                               group_heads=group_heads,
+                               group_edit=group_edit,
+                               form=form,
+                               mail_form=forms.MailForm())
 
 
 @app.route('/prayer')
 @login_required
 def prayer():
     ''' show random prayer '''
-    random_prayer = models.get_random_prayer()
-    if random_prayer is not None:
-        user = ct_connect.get_person_from_id(random_prayer.user_id)[0]
-    else:
-        user = None
-    return render_template('prayer.html',
-                           random_prayer=random_prayer,
-                           user=user)
+    with ct_connect.session_scope() as ct_session:
+        random_prayer = models.get_random_prayer()
+        if random_prayer is not None:
+            user = ct_connect.get_person_from_id(
+                ct_session,
+                random_prayer.user_id)[0]
+        else:
+            user = None
+        return render_template('prayer.html',
+                               random_prayer=random_prayer,
+                               user=user)
 
 
 @app.route('/prayer/add', methods=['GET', 'POST'])
@@ -432,113 +438,115 @@ def prayer_del(id):
 @app.route('/profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 def profile(id):
-    user = ct_connect.get_person_from_id(id)
+    with ct_connect.session_scope() as ct_session:
+        user = ct_connect.get_person_from_id(ct_session, id)
 
-    if not user:
-        abort(404)
+        if not user:
+            abort(404)
 
-    # geting metadata
-    user_metadata = models.get_user_metadata(id)
+        # geting metadata
+        user_metadata = models.get_user_metadata(id)
 
-    # check if user is allowed to edit profile
-    user_edit = False
-    for session_user in session['user']:
-        if session_user['id'] == id:
-            user_edit = True
-            session_user['active'] = True
-
-        else:
-            pass
-
-    # if someone is trying to make a POST request and user_edit is False
-    # abort with a 403 status
-    if request.method == 'POST' and user_edit is False:
-        abort(403)
-
-    # set form to None that there is something to send to the template
-    # if logged in user is not allowed to edit profile
-    form = None
-
-    # this is for editing users own profile
-    if user_edit:
-        # set other users in session['user'] inactive
+        # check if user is allowed to edit profile
+        user_edit = False
         for session_user in session['user']:
-            if session_user['id'] != id:
-                session_user['active'] = False
+            if session_user['id'] == id:
+                user_edit = True
+                session_user['active'] = True
 
-        # if there is no user_metadata db entry define it
-        if not user_metadata:
-            user_metadata = models.UserMetadata(ct_id=id)
-            db.session.add(user_metadata)
+            else:
+                pass
 
-        # try to prefill form
-        form = forms.EditProfileForm(
-            street=user[0].strasse,
-            postal_code=user[0].plz,
-            city=user[0].ort,
-            bio=user_metadata.bio,
-            twitter=user_metadata.twitter,
-            facebook=user_metadata.facebook)
+        # if someone is trying to make a POST request and user_edit is False
+        # abort with a 403 status
+        if request.method == 'POST' and user_edit is False:
+            abort(403)
 
-        # clicked submit
-        if form.validate_on_submit():
-            try:
-                # save image and set the image db true
-                form.user_image.data.stream.seek(0)
+        # set form to None that there is something to send to the template
+        # if logged in user is not allowed to edit profile
+        form = None
 
-                # metadata
-                user_image = save_image(form.user_image.data.stream,
-                                        request_path=request.path,
-                                        user_id=auth.active_user()['id'])
-                if user_image:
-                    user_metadata.avatar_id = user_image
+        # this is for editing users own profile
+        if user_edit:
+            # set other users in session['user'] inactive
+            for session_user in session['user']:
+                if session_user['id'] != id:
+                    session_user['active'] = False
 
-                user_metadata.bio = form.bio.data
-                user_metadata.twitter = form.twitter.data
-                user_metadata.facebook = form.facebook.data
-
-                # save metadata to metadata db
+            # if there is no user_metadata db entry define it
+            if not user_metadata:
+                user_metadata = models.UserMetadata(ct_id=id)
                 db.session.add(user_metadata)
-                db.session.commit()
 
-                # churchtools
-                user[0].strasse = form.street.data
-                user[0].plz = form.postal_code.data
-                user[0].ort = form.city.data
+            # try to prefill form
+            form = forms.EditProfileForm(
+                street=user[0].strasse,
+                postal_code=user[0].plz,
+                city=user[0].ort,
+                bio=user_metadata.bio,
+                twitter=user_metadata.twitter,
+                facebook=user_metadata.facebook)
 
-                # password
-                if form.password.data:
-                    user[0].password = bcrypt.encrypt(form.password.data)
+            # clicked submit
+            if form.validate_on_submit():
+                try:
+                    # save image and set the image db true
+                    form.user_image.data.stream.seek(0)
 
-                # save data to churchtools db
-                ct_connect.SESSION.add(user[0])
-                ct_connect.SESSION.commit()
+                    # metadata
+                    user_image = save_image(form.user_image.data.stream,
+                                            request_path=request.path,
+                                            user_id=auth.active_user()['id'])
+                    if user_image:
+                        user_metadata.avatar_id = user_image
 
-                flash('Profil geaendert!', 'success')
-                return redirect(url_for('profile', id=id))
+                    user_metadata.bio = form.bio.data
+                    user_metadata.twitter = form.twitter.data
+                    user_metadata.facebook = form.facebook.data
 
-            except:
-                flash('Es ist ein Fehler aufgetreten!', 'danger')
-                return redirect(url_for('profile', id=id))
+                    # save metadata to metadata db
+                    db.session.add(user_metadata)
+                    db.session.commit()
 
-    return render_template('profile.html',
-                           user=user[0],
-                           user_metadata=user_metadata,
-                           user_edit=user_edit,
-                           form=form,
-                           mail_form=forms.MailForm())
+                    # churchtools
+                    user[0].strasse = form.street.data
+                    user[0].plz = form.postal_code.data
+                    user[0].ort = form.city.data
+
+                    # password
+                    if form.password.data:
+                        user[0].password = bcrypt.encrypt(form.password.data)
+
+                    # save data to churchtools db
+                    ct_session.add(user[0])
+                    ct_session.commit()
+
+                    flash('Profil geaendert!', 'success')
+                    return redirect(url_for('profile', id=id))
+
+                except:
+                    flash('Es ist ein Fehler aufgetreten!', 'danger')
+                    return redirect(url_for('profile', id=id))
+
+        return render_template('profile.html',
+                               user=user[0],
+                               user_metadata=user_metadata,
+                               user_edit=user_edit,
+                               form=form,
+                               mail_form=forms.MailForm())
 
 
 def get_recipients(profile_or_group, id):
-    if 'profile' in profile_or_group:
-        person = ct_connect.get_person_from_id(id)[0]
+    with ct_connect.session_scope() as ct_session:
+        if 'profile' in profile_or_group:
+            person = ct_connect.get_person_from_id(ct_session, id)[0]
 
-        return [person.email]
+            return [person.email]
 
-    elif 'group' in profile_or_group:
-        group = ct_connect.get_group_heads(id)
+        elif 'group' in profile_or_group:
+            group = ct_connect.get_group_heads(ct_session, id)
 
-        return [i.email for i in group]
+            return [i.email for i in group]
 
 
 @app.route('/mail/<profile_or_group>/<int:id>', methods=['GET', 'POST'])
@@ -609,9 +617,12 @@ def whatsup_overview():
             flash('Fehler aufgetreten!', 'danger')
             return redirect(url_for('whatsup_overview'))
 
-    return render_template('whatsup_overview.html',
-                           posts=posts,
-                           form=form)
+    # ct_data needs a db session to access the ct database
+    with ct_connect.session_scope() as ct_session:
+        return render_template('whatsup_overview.html',
+                               posts=posts,
+                               form=form,
+                               ct_session=ct_session)
 
 
 @app.route('/whatsup/<int:id>/upvote')
@@ -683,7 +694,12 @@ def whatsup_post(id):
             flash('Fehler aufgetreten!', 'danger')
             return redirect(url_for('whatsup_post', id=id))
 
-    return render_template('whatsup_post.html', post=post, form=form)
+    # ct_data needs a db session to access the ct database
+    with ct_connect.session_scope() as ct_session:
+        return render_template('whatsup_post.html',
+                               post=post,
+                               form=form,
+                               ct_session=ct_session)
 
 
 @app.route('/whatsup/mine', methods=['GET', 'POST'])

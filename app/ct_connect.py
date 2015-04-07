@@ -8,6 +8,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import Pool
 from sqlalchemy.ext.declarative import declarative_base
+from contextlib import contextmanager
 from passlib.hash import bcrypt
 
 
@@ -16,7 +17,19 @@ BASE = declarative_base()
 ENGINE = create_engine(URI, echo=False, pool_recycle=3600)
 METADATA = MetaData(bind=ENGINE)
 Session = sessionmaker(bind=ENGINE)
-SESSION = Session()
+
+
+@contextmanager
+def session_scope():
+    session = Session()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 @event.listens_for(Pool, 'checkout')
@@ -64,58 +77,58 @@ class GroupMemberStatus(BASE):
         autoload=True)
 
 
-def get_person(email):
-    return SESSION.query(
+def get_person(session, email):
+    return session.query(
         Person).filter(
             Person.email == email).all()
 
 
-def get_person_from_id(id):
-    return SESSION.query(
+def get_person_from_id(session, id):
+    return session.query(
         Person).filter(
             Person.id == id).all()
 
 
-def get_active_groups():
-    return SESSION.query(Group).filter(
+def get_active_groups(session):
+    return session.query(Group).filter(
         Group.gruppentyp_id == '1',
         Group.abschlussdatum == None,
         Group.versteckt_yn == '0').all()
 
 
-def get_group(id):
-    return SESSION.query(Group).filter(
+def get_group(session, id):
+    return session.query(Group).filter(
         Group.id == id).first()
 
 
-def get_group_heads(id):
+def get_group_heads(session, id):
     head_list = []
-    heads = SESSION.query(CommunityPersonInGroup).filter(
+    heads = session.query(CommunityPersonInGroup).filter(
         CommunityPersonInGroup.gruppe_id == id,
         CommunityPersonInGroup.status_no == 1).all()
     for head in heads:
         head_list.append(
-            get_person_from_communityperson(head.gemeindeperson_id))
+            get_person_from_communityperson(session, head.gemeindeperson_id))
 
     return head_list
 
 
-def get_group_members(id):
-    return SESSION.query(CommunityPerson).join(
+def get_group_members(session, id):
+    return session.query(CommunityPerson).join(
         CommunityPersonInGroup,
         CommunityPerson.id == CommunityPersonInGroup.gemeindeperson_id).filter(
             CommunityPersonInGroup.gruppe_id == id).all()
 
 
-def get_person_from_communityperson(id):
-    return SESSION.query(Person).join(
+def get_person_from_communityperson(session, id):
+    return session.query(Person).join(
         CommunityPerson,
         Person.id == CommunityPerson.person_id).filter(
             CommunityPerson.person_id == id).first()
 
 
-def change_user_password(id, password):
-    user = get_person_from_id(id)[0]
+def change_user_password(session, id, password):
+    user = get_person_from_id(session, id)[0]
     user.password = bcrypt.encrypt(password)
-    SESSION.add(user)
-    SESSION.commit()
+    session.add(user)
+    session.commit()

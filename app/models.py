@@ -59,7 +59,8 @@ class GroupMetadata(db.Model):
     @property
     def ct_data(self):
         ''' returns group data from the churchtools db '''
-        return ct_connect.get_group(self.ct_id)[0]
+        with ct_connect.session_scope() as ct_session:
+            return ct_connect.get_group(ct_session, self.ct_id)[0]
 
 
 class UserMetadata(db.Model):
@@ -84,10 +85,9 @@ class UserMetadata(db.Model):
     def __unicode__(self):
         return unicode(self.ct_id)
 
-    @property
-    def ct_data(self):
+    def ct_data(self, ct_session):
         ''' returns person data from the churchtools db '''
-        return ct_connect.get_person_from_id(self.ct_id)[0]
+        return ct_connect.get_person_from_id(ct_session, self.ct_id)[0]
 
 
 class Image(db.Model):

@@ -80,107 +80,113 @@ def image(request):
 @pytest.fixture
 def reset_ct_user(request):
     ''' reset ct user db entries '''
-    # getting ids from the test user
-    test_ids = [i['id'] for i in TEST_USER]
+    with ct_connect.session_scope() as ct_session:
+        # getting ids from the test user
+        test_ids = [i['id'] for i in TEST_USER]
 
-    # list of test user db entries
-    ct_entries = [ct_connect.get_person_from_id(i)[0] for i in test_ids]
+        # list of test user db entries
+        ct_entries = [ct_connect.get_person_from_id(ct_session, i)[0]
+                      for i in test_ids]
 
-    # create data store and fill it
-    test_user_data = []
-    for entry in ct_entries:
-        user_data = {}
-        user_data['id'] = entry.id
-        user_data['strasse'] = entry.strasse
-        user_data['plz'] = entry.plz
-        user_data['ort'] = entry.ort
-        user_data['password'] = entry.password
+        # create data store and fill it
+        test_user_data = []
+        for entry in ct_entries:
+            user_data = {}
+            user_data['id'] = entry.id
+            user_data['strasse'] = entry.strasse
+            user_data['plz'] = entry.plz
+            user_data['ort'] = entry.ort
+            user_data['password'] = entry.password
 
-        test_user_data.append(user_data)
+            test_user_data.append(user_data)
 
-    def fin():
-        for entry in test_user_data:
-            user = ct_connect.get_person_from_id(entry['id'])[0]
-            user.strasse = entry['strasse']
-            user.plz = entry['plz']
-            user.ort = entry['ort']
-            user.password = entry['password']
+        def fin():
+            for entry in test_user_data:
+                user = ct_connect.get_person_from_id(ct_session,
+                                                     entry['id'])[0]
+                user.strasse = entry['strasse']
+                user.plz = entry['plz']
+                user.ort = entry['ort']
+                user.password = entry['password']
 
-            # save to db
-            ct_connect.SESSION.add(user)
+                # save to db
+                ct_session.add(user)
 
-        ct_connect.SESSION.commit()
+            ct_session.commit()
 
-    request.addfinalizer(fin)
-    return True
+        request.addfinalizer(fin)
+        return True
 
 
 @pytest.fixture
 def reset_ct_group(request):
     ''' reset test group data in db '''
-    # getting group out of churchtools db
-    group = ct_connect.get_group(1)
+    with ct_connect.session_scope() as ct_session:
+        # getting group out of churchtools db
+        group = ct_connect.get_group(ct_session, 1)
 
-    # create data store and fill it
-    group_data = {}
-    group_data['treffpunkt'] = group.treffpunkt
-    group_data['treffzeit'] = group.treffzeit
-    group_data['zielgruppe'] = group.zielgruppe
+        # create data store and fill it
+        group_data = {}
+        group_data['treffpunkt'] = group.treffpunkt
+        group_data['treffzeit'] = group.treffzeit
+        group_data['zielgruppe'] = group.zielgruppe
 
-    def fin():
-        group.treffpunkt = group_data['treffpunkt']
-        group.treffzeit = group_data['treffzeit']
-        group.zielgruppe = group_data['zielgruppe']
+        def fin():
+            group.treffpunkt = group_data['treffpunkt']
+            group.treffzeit = group_data['treffzeit']
+            group.zielgruppe = group_data['zielgruppe']
 
-        # save back to ct
-        ct_connect.SESSION.add(group)
-        ct_connect.SESSION.commit()
+            # save back to ct
+            ct_session.add(group)
+            ct_session.commit()
 
-    request.addfinalizer(fin)
+        request.addfinalizer(fin)
 
 
 def ct_create_person(user_data):
     ''' creates temp churchtools person '''
-    # extracting column keys out of person table from churchtools
-    ct_columns = ct_connect.Person.__table__.columns.keys()
+    with ct_connect.session_scope() as ct_session:
+        # extracting column keys out of person table from churchtools
+        ct_columns = ct_connect.Person.__table__.columns.keys()
 
-    # create person data dict prefilled with default empty strings
-    person_data = {}
-    for column in ct_columns:
-        person_data[column] = ''
+        # create person data dict prefilled with default empty strings
+        person_data = {}
+        for column in ct_columns:
+            person_data[column] = ''
 
-    # for each item in user_data create an db entry
-    for user in user_data:
-        # getting person_data dict
-        temp_person_data = person_data
+        # for each item in user_data create an db entry
+        for user in user_data:
+            # getting person_data dict
+            temp_person_data = person_data
 
-        # fill the temp_person_dict
-        for key, value in user.iteritems():
-            if key == 'password':
-                temp_person_data[key] = bcrypt.encrypt(value)
-            else:
-                temp_person_data[key] = value
+            # fill the temp_person_dict
+            for key, value in user.iteritems():
+                if key == 'password':
+                    temp_person_data[key] = bcrypt.encrypt(value)
+                else:
+                    temp_person_data[key] = value
 
-        # define temp user
-        temp_user = ct_connect.Person(**temp_person_data)
+            # define temp user
+            temp_user = ct_connect.Person(**temp_person_data)
 
-        # add temp user to session
-        ct_connect.SESSION.add(temp_user)
+            # add temp user to session
+            ct_session.add(temp_user)
 
-    # save to db
-    ct_connect.SESSION.commit()
+        # save to db
+        ct_session.commit()
 
 
 def ct_delete_person(user_data):
-    # for each user in user_data find and delete entry
-    for user in user_data:
-        ct_connect.SESSION.query(ct_connect.Person).filter(
-            ct_connect.Person.email == user['email'],
-            ct_connect.Person.name == user['name'],
-            ct_connect.Person.vorname == user['vorname']).delete()
+    with ct_connect.session_scope() as ct_session:
+        # for each user in user_data find and delete entry
+        for user in user_data:
+            ct_session.query(ct_connect.Person).filter(
+                ct_connect.Person.email == user['email'],
+                ct_connect.Person.name == user['name'],
+                ct_connect.Person.vorname == user['vorname']).delete()
 
-    # save to db
-    ct_connect.SESSION.commit()
+        # save to db
+        ct_session.commit()
 
 
 @pytest.fixture
@@ -409,6 +415,22 @@ def edit_index(client,
                        follow_redirects=True)
 
 
+def get_own_group_ids(id):
+    with ct_connect.session_scope() as ct_session:
+        return [i.id
+                for i in ct_connect.get_active_groups(ct_session)
+                for j in ct_connect.get_group_heads(ct_session, i.id)
+                if j.id == id]
+
+
+def get_other_group_ids(id):
+    with ct_connect.session_scope() as ct_session:
+        return [i.id
+                for i in ct_connect.get_active_groups(ct_session)
+                if id not in [j.id for j in ct_connect.get_group_heads(
+                    ct_session, i.id)]]
+
+
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_login(client, test_user):
     ''' login user'''
@@ -435,100 +457,110 @@ def test_logout(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER[1:3])
 def test_ct_get_person(test_user):
     ''' person out of churchtools '''
-    rv = ct_connect.get_person(test_user['email'])
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_person(ct_session, test_user['email'])
 
-    assert test_user['name'] in [i.name for i in rv]
-    assert test_user['vorname'] in [i.vorname for i in rv]
+        assert test_user['name'] in [i.name for i in rv]
+        assert test_user['vorname'] in [i.vorname for i in rv]
 
 
 @pytest.mark.parametrize('test_user', TEST_USER[1:3])
 def test_ct_person_from_id(test_user):
     ''' person out of churchtools from id '''
-    rv = ct_connect.get_person_from_id(test_user['id'])[0]
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_person_from_id(ct_session, test_user['id'])[0]
 
-    assert rv.email == test_user['email']
-    assert rv.name == test_user['name']
-    assert rv.vorname == test_user['vorname']
+        assert rv.email == test_user['email']
+        assert rv.name == test_user['name']
+        assert rv.vorname == test_user['vorname']
 
 
 def test_ct_get_active_groups():
     ''' list of active groups out of churchtools '''
-    rv = ct_connect.get_active_groups()
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_active_groups(ct_session)
 
-    assert u'KG - Test' in [i.bezeichnung for i in rv]
+        assert u'KG - Test' in [i.bezeichnung for i in rv]
 
 
 def test_ct_get_group():
     ''' specific group out of churchtools '''
-    rv = ct_connect.get_group(1)
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_group(ct_session, 1)
 
-    assert rv.valid_yn == 1
-    assert rv.versteckt_yn == 0
-    assert rv.bezeichnung == u'KG - Test'
-    assert rv.gruendungsdatum == datetime(2010, 0o4, 0o6, 00, 00, 00)
-    assert rv.treffzeit == u'Jeden Mittwoch 19h'
-    assert rv.treffpunkt == u'Siebenkeesstr. 18, 90459 Nürnberg'
-    assert rv.zielgruppe == u'Zwischen 9-17J.'
-    assert rv.gruppentyp_id == 1
-    assert rv.distrikt_id == 14
-    assert rv.geolat == u'49.4412072'
-    assert rv.geolng == u'11.078397799999948'
-    assert rv.offen_yn == 0
-    assert rv.oeffentlich_yn == 0
-    assert rv.treffen_yn == 1
-    assert rv.instatistik_yn == 1
-    assert rv.mail_an_leiter_yn == 1
-    assert rv.members_allowedmail_eachother_yn == 0
-    assert rv.followup_typ_id == 0
-    assert rv.fu_nachfolge_typ_id == 0
-    assert rv.fu_nachfolge_objekt_id == 0
-    assert rv.fu_nachfolge_gruppenteilnehmerstatus_id == 0
+        assert rv.valid_yn == 1
+        assert rv.versteckt_yn == 0
+        assert rv.bezeichnung == u'KG - Test'
+        assert rv.gruendungsdatum == datetime(2010, 0o4, 0o6, 00, 00, 00)
+        assert rv.treffzeit == u'Jeden Mittwoch 19h'
+        assert rv.treffpunkt == u'Siebenkeesstr. 18, 90459 Nürnberg'
+        assert rv.zielgruppe == u'Zwischen 9-17J.'
+        assert rv.gruppentyp_id == 1
+        assert rv.distrikt_id == 14
+        assert rv.geolat == u'49.4412072'
+        assert rv.geolng == u'11.078397799999948'
+        assert rv.offen_yn == 0
+        assert rv.oeffentlich_yn == 0
+        assert rv.treffen_yn == 1
+        assert rv.instatistik_yn == 1
+        assert rv.mail_an_leiter_yn == 1
+        assert rv.members_allowedmail_eachother_yn == 0
+        assert rv.followup_typ_id == 0
+        assert rv.fu_nachfolge_typ_id == 0
+        assert rv.fu_nachfolge_objekt_id == 0
+        assert rv.fu_nachfolge_gruppenteilnehmerstatus_id == 0
 
 
 def test_ct_get_group_heads():
     ''' list of group heads out of churchtools '''
-    rv = ct_connect.get_group_heads(1)
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_group_heads(ct_session, 1)
 
-    assert [u'Leiter', u'Preuß'] == [i.name for i in rv]
+        assert [u'Leiter', u'Preuß'] == [i.name for i in rv]
 
 
 def test_ct_get_group_members():
     ''' group members out of churchtools '''
-    rv = ct_connect.get_group_members(1)
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_group_members(ct_session, 1)
 
-    assert [118, 163, 383] == [i.id for i in rv]
+        assert [118, 163, 383] == [i.id for i in rv]
 
 
 def test_ct_get_person_from_communityperson():
     ''' person object out of communityperson from churchtools '''
-    rv = ct_connect.get_person_from_communityperson(118)
+    with ct_connect.session_scope() as ct_session:
+        rv = ct_connect.get_person_from_communityperson(ct_session, 118)
 
-    assert rv.name == u'Leiter'
-    assert rv.vorname == u'Test'
-    assert rv.email == u'test.leiter@ecclesianuernberg.de'
+        assert rv.name == u'Leiter'
+        assert rv.vorname == u'Test'
+        assert rv.email == u'test.leiter@ecclesianuernberg.de'
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_ct_change_user_password(test_user):
     ''' change user password in churchtools '''
-    # check if test_user password is the one in the churchtools-db
-    db_user = ct_connect.get_person_from_id(test_user['id'])[0]
+    with ct_connect.session_scope() as ct_session:
+        # check if test_user password is the one in the churchtools-db
+        db_user = ct_connect.get_person_from_id(ct_session, test_user['id'])[0]
 
-    assert bcrypt.verify(
-        test_user['password'],
-        db_user.password)
+        assert bcrypt.verify(
+            test_user['password'],
+            db_user.password)
 
-    # new password
-    password = 'newpassword'
-    ct_connect.change_user_password(test_user['id'], password)
-    db_user = ct_connect.get_person_from_id(test_user['id'])[0]
+        # new password
+        password = 'newpassword'
+        ct_connect.change_user_password(ct_session, test_user['id'], password)
+        db_user = ct_connect.get_person_from_id(ct_session, test_user['id'])[0]
 
-    assert bcrypt.verify(
-        password,
-        db_user.password)
+        assert bcrypt.verify(
+            password,
+            db_user.password)
 
-    # reset password
-    ct_connect.change_user_password(test_user['id'], test_user['password'])
+        # reset password
+        ct_connect.change_user_password(ct_session,
+                                        test_user['id'],
+                                        test_user['password'])
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -679,23 +711,24 @@ def test_access_group_list(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_group_list(client, test_user):
     ''' group list data '''
-    group_data = []
+    with ct_connect.session_scope() as ct_session:
+        group_data = []
 
-    # ct group data
-    for group in ct_connect.get_active_groups():
-        group_data.append(group.bezeichnung.split('-')[-1].encode('utf-8'))
-        if group.treffzeit:
-            group_data.append(group.treffzeit.encode('utf-8'))
-        if group.treffpunkt:
-            group_data.append(group.treffpunkt.encode('utf-8'))
+        # ct group data
+        for group in ct_connect.get_active_groups(ct_session):
+            group_data.append(group.bezeichnung.split('-')[-1].encode('utf-8'))
+            if group.treffzeit:
+                group_data.append(group.treffzeit.encode('utf-8'))
+            if group.treffpunkt:
+                group_data.append(group.treffpunkt.encode('utf-8'))
 
-    login(client, test_user['email'], test_user['password'])
-    rv = client.get('/groups')
+        login(client, test_user['email'], test_user['password'])
+        rv = client.get('/groups')
 
-    for data in group_data:
-        assert data in rv.data
+        for data in group_data:
+            assert data in rv.data
 
-    assert 'avatar-thumb.png' in rv.data
+        assert 'avatar-thumb.png' in rv.data
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -716,11 +749,7 @@ def test_access_group(client, test_user):
     assert rv.status_code == 200
 
 
-@pytest.mark.parametrize('own_group',
-                         [i.id
-                          for i in ct_connect.get_active_groups()
-                          for j in ct_connect.get_group_heads(i.id)
-                          if j.id == 118])
+@pytest.mark.parametrize('own_group', get_own_group_ids(118))
 def test_group_edit_allowed(client, reset_ct_group, own_group, image):
     ''' user can edit groups he is head of '''
     test_user = TEST_USER[0]
@@ -758,11 +787,7 @@ def test_group_edit_allowed(client, reset_ct_group, own_group, image):
     assert 'Jeden Sonntag' in rv.data
 
 
-@pytest.mark.parametrize(
-    'not_own_group',
-    [i.id
-     for i in ct_connect.get_active_groups()
-     if 118 not in [j.id for j in ct_connect.get_group_heads(i.id)]])
+@pytest.mark.parametrize('not_own_group', get_other_group_ids(118))
 def test_group_edit_forbidden(client, not_own_group, image):
     ''' user cant edit groups he isnt head of '''
     test_user = TEST_USER[0]
@@ -799,20 +824,22 @@ def test_group_edit_button(client, test_user, allowed):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_group_data(client, test_user):
     ''' group ct data and metadata on group page '''
-    groups = ct_connect.get_active_groups()
-    random_group = choice(groups)
+    with ct_connect.session_scope() as ct_session:
+        groups = ct_connect.get_active_groups(ct_session)
+        random_group = choice(groups)
 
-    group_ct_data = ct_connect.get_group(random_group.id)
+        group_ct_data = ct_connect.get_group(ct_session, random_group.id)
 
-    login(client, test_user['email'], test_user['password'])
+        login(client, test_user['email'], test_user['password'])
 
-    rv = client.get('/group/{}'.format(random_group.id))
+        rv = client.get('/group/{}'.format(random_group.id))
 
-    assert group_ct_data.bezeichnung.split('-')[-1].encode('utf-8') in rv.data
-    if group_ct_data.treffzeit:
-        assert group_ct_data.treffzeit.encode('utf-8') in rv.data
-    if group_ct_data.treffpunkt:
-        assert group_ct_data.treffpunkt.encode('utf-8') in rv.data
+        assert group_ct_data.bezeichnung.split(
+            '-')[-1].encode('utf-8') in rv.data
+        if group_ct_data.treffzeit:
+            assert group_ct_data.treffzeit.encode('utf-8') in rv.data
+        if group_ct_data.treffpunkt:
+            assert group_ct_data.treffpunkt.encode('utf-8') in rv.data
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -944,13 +971,14 @@ def test_api_del_prayer(client, test_user):
 
 def test_persons():
     ''' creates session dict for persons '''
-    test_user = app.app.config['TEST_USER'][1]
-    user = ct_connect.get_person(test_user['email'])
-    persons = auth.persons(user)
-    assert persons[0]['email'] == test_user['email']
-    assert persons[0]['id'] == test_user['id']
-    assert persons[0]['vorname'] == test_user['vorname']
-    assert persons[0]['name'] == test_user['name']
+    with ct_connect.session_scope() as ct_session:
+        test_user = app.app.config['TEST_USER'][1]
+        user = ct_connect.get_person(ct_session, test_user['email'])
+        persons = auth.persons(user)
+        assert persons[0]['email'] == test_user['email']
+        assert persons[0]['id'] == test_user['id']
+        assert persons[0]['vorname'] == test_user['vorname']
+        assert persons[0]['name'] == test_user['name']
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -1084,14 +1112,16 @@ def test_edit_profile(client, reset_ct_user, test_user, image):
     assert '{}.jpg'.format(user_metadata.avatar_id) in rv.data
 
     # test churchtools db entries
-    ct_person = ct_connect.get_person_from_id(test_user['id'])[0]
+    with ct_connect.session_scope() as ct_session:
+        ct_person = ct_connect.get_person_from_id(ct_session,
+                                                  test_user['id'])[0]
 
-    assert ct_person.strasse == street
-    assert ct_person.plz == postal_code
-    assert ct_person.ort == city
+        assert ct_person.strasse == street
+        assert ct_person.plz == postal_code
+        assert ct_person.ort == city
 
-    # check password
-    assert bcrypt.verify(password, ct_person.password)
+        # check password
+        assert bcrypt.verify(password, ct_person.password)
 
     # now with a user that is not allowed
     wrong_user_id = get_wrong_user_id(test_user['id'])
@@ -1402,6 +1432,18 @@ def test_whatsup_post(client, test_user):
     assert 'comment3' in rv[2].text
     assert 'comment2' in rv[3].text
     assert 'comment1' in rv[4].text
+
+    # checking names
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) in rv[0].text.encode('utf-8')
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) in rv[1].text.encode('utf-8')
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) in rv[2].text.encode('utf-8')
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) in rv[3].text.encode('utf-8')
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) in rv[4].text.encode('utf-8')
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

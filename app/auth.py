@@ -32,12 +32,14 @@ class CTUser(UserMixin):
 
     def get_user(self):
         try:
-            user = ct_connect.get_person(self.id)
-            if user:
-                self.persons = persons(user)
-                return self
-            else:
-                return None
+            with ct_connect.session_scope() as ct_session:
+                user = ct_connect.get_person(ct_session, self.id)
+
+                if user:
+                    self.persons = persons(user)
+                    return self
+                else:
+                    return None
 
         except:
             return None
@@ -111,18 +113,19 @@ def verify_password(email_or_token, password):
 
 def head_of_group_or_403(group_id):
     ''' checks if current_user is head of the group or aborts '''
-    heads = ct_connect.get_group_heads(group_id)
+    with ct_connect.session_scope() as ct_session:
+        heads = ct_connect.get_group_heads(ct_session, group_id)
 
-    # if the request comes from the api it needs a different way to get the
-    # user to check with and a different abort function
-    if '/api/' in request.path:
-        is_head = any(head.email == g.user.username for head in heads)
-        if not is_head:
-            abort_rest(403)
-    else:
-        is_head = any(head.email == current_user.get_id() for head in heads)
-        if not is_head:
-            abort(403)
+        # if the request comes from the api it needs a different way to get the
+        # user to check with and a different abort function
+        if '/api/' in request.path:
+            is_head = any(head.email == g.user.username for head in heads)
+            if not is_head:
+                abort_rest(403)
+        else:
+            is_head = any(head.email == current_user.get_id() for head in heads)
+            if not is_head:
+                abort(403)
 
 
 def prayer_owner_or_403(prayer_id):

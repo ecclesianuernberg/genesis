@@ -60,3 +60,4 @@ docs/_build/
 *.db
 app/static/uploaded_images/*.jpg
 config.py
+whoosh_index

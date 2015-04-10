@@ -155,3 +155,7 @@ class AddWhatsUpComment(Form):
                                      validators.Length(max=700)])
 
     submit = SubmitField('Submit')
+
+
+class SearchForm(Form):
+    search = StringField('search', validators=[validators.DataRequired()])

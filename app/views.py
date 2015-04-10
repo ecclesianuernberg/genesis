@@ -10,7 +10,8 @@ from flask import (
     url_for,
     flash,
     session,
-    abort)
+    abort,
+    g)
 from flask.ext.login import (
     login_user,
     logout_user,
@@ -96,6 +97,11 @@ def internal_error(error):
     logout_user()
 
     return redirect(url_for('login'))
+
+
+@app.before_request
+def before_request():
+    g.search_form = forms.SearchForm()
 
 
 @app.route('/')
@@ -794,3 +800,32 @@ def whatsup_mine():
     return render_template('whatsup_mine.html',
                            posts=posts,
                            edit_forms=edit_forms)
+
+
+@app.route('/search', methods=['POST'])
+@login_required
+def search():
+    if not g.search_form.validate_on_submit():
+        return redirect(redirect_url())
+
+    return redirect(url_for('search_results', query=g.search_form.search.data))
+
+
+@app.route('/search_results/<query>')
+@login_required
+def search_results(query):
+    with ct_connect.session_scope() as ct_session:
+        ct_persons = ct_connect.search_person(ct_session, query)
+
+        persons = [(person, models.get_user_metadata(person.id))
+                   for person in ct_persons]
+
+        posts = models.search_whatsup_posts(query)
+        comments = models.search_whatsup_comments(query)
+
+        return render_template('search.html',
+                               query=query,
+                               persons=persons,
+                               posts=posts,
+                               comments=comments,
+                               ct_session=ct_session)

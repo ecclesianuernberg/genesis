@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block content %}
+<div class="container">
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+			<div class="alert alert-{{ category }}">
+				<button type="button" class="close" data-dismiss="alert">&times;</button>
+				<strong>{{ message }}</strong>
+			</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
+	<h1 class="text-center">Suche <small>"{{ query }}"</small></h1>
+
+	{% if persons %}
+	<h2>Personen</h2>
+		<ul class="media-list">
+			{% for person in persons %}
+			<li class="media">
+				<div class="media-left media-middle">
+					<a href="{{ url_for('profile', id=person[0].id) }}">
+						{% if person[1].avatar_id %}
+						<img class="media-object" src="{{ url_for('.static', filename='uploaded_images') }}/{{ person[1].avatar_id }}-thumb.jpg" width="100" height="100">
+						{% else %}
+						<img class="media-object" src="{{ url_for('.static', filename='images/avatar-thumb.png') }}" width="100" height="100">
+						{% endif %}
+					</a>
+				</div>
+				<div class="media-body">
+
+					<h4 class="media-heading">
+						<a href="{{ url_for('profile', id=person[0].id) }}">{{ person[0].vorname }} {{ person[0].name }}</a>
+					</h4>
+
+					{% if person[1].bio %}
+					{{ person[1].bio }}
+					{% endif %}
+
+				</div>
+			</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+
+	{% if posts %}
+	<h2>Posts</h2>
+		<ul class="media-list">
+			{% for post in posts %}
+			<li class="media">
+				<div class="media-left">
+					<a href="{{ url_for('profile', id=post.user_id) }}">
+						{% if post.user.avatar_id %}
+						<img class="media-object" src="{{ url_for('.static', filename='uploaded_images') }}/{{ post.user.avatar_id }}-thumb.jpg" width="100" height="100">
+						{% else %}
+						<img class="media-object" src="{{ url_for('.static', filename='images/avatar-thumb.png') }}" width="100" height="100">
+						{% endif %}
+					</a>
+					<div class="text-center">
+						<small>
+							{{ moment(post.pub_date).fromNow() }}
+						</small>
+					</div>
+				</div>
+				<div class="media-body">
+
+					<h4 class="media-heading">
+						<a href="{{ url_for('whatsup_post', id=post.id) }}">{{ post.subject }}</a>
+						<small>
+							{{ post.user.ct_data(ct_session).vorname }} {{ post.user.ct_data(ct_session).name }}
+            </small>
+					</h4>
+
+					{{ post.body }}
+
+				</div>
+			</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+
+	{% if comments %}
+	<h2>Kommentare</h2>
+		<ul class="media-list">
+			{% for comment in comments %}
+			<li class="media">
+				<div class="media-left">
+					<a href="{{ url_for('profile', id=comment.user_id) }}">
+						{% if comment.user.avatar_id %}
+						<img class="media-object" src="{{ url_for('.static', filename='uploaded_images') }}/{{ comment.user.avatar_id }}-thumb.jpg" width="100" height="100">
+						{% else %}
+						<img class="media-object" src="{{ url_for('.static', filename='images/avatar-thumb.png') }}" width="100" height="100">
+						{% endif %}
+					</a>
+					<div class="text-center">
+						<small>
+							{{ moment(comment.pub_date).fromNow() }}
+						</small>
+					</div>
+				</div>
+				<div class="media-body">
+
+					<h4 class="media-heading">
+						<small>
+							{{ comment.user.ct_data(ct_session).vorname }} {{ comment.user.ct_data(ct_session).name }} in
+						</small>
+						<a href="{{ url_for('whatsup_post', id=comment.post.id, _anchor=comment.id) }}">{{ comment.post.subject }}</a>
+					</h4>
+
+					{{ comment.body }}
+
+				</div>
+			</li>
+			{% endfor %}
+		</ul>
+	{% endif %}
+
+</div>
+
+{{ super() }}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+	{{ moment.include_moment() }}
+{% endblock %}

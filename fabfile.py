@@ -11,7 +11,7 @@ env.app_user = 'www-data'
 
 def tox():
     ''' running local tox'''
-    local('tox')
+    local('tox -r')
 
 
 def git():

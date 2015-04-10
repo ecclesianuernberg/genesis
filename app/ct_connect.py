@@ -4,7 +4,9 @@ from sqlalchemy import (
     MetaData,
     Table,
     exc,
-    event)
+    event,
+    or_,
+    and_)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import Pool
 from sqlalchemy.ext.declarative import declarative_base
@@ -132,3 +134,27 @@ def change_user_password(session, id, password):
     user.password = bcrypt.encrypt(password)
     session.add(user)
     session.commit()
+
+
+def search_person(session, query):
+    ''' return a list of users for searching '''
+    # split the query in list of words
+    query = query.split(' ')
+
+    user = []
+
+    # if there is only one string in list check if its vorname or name
+    if len(query) == 1:
+        user.extend(
+            session.query(Person).filter(
+                or_(Person.vorname == query[0].title(),
+                    Person.name == query[0].title())).all())
+
+    # check for the full name
+    else:
+        user.extend(
+            session.query(Person).filter(
+                and_(Person.vorname == query[0].title(),
+                     Person.name == query[1].title())).all())
+
+    return user

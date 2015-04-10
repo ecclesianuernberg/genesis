@@ -1,12 +1,14 @@
-from app import db, ct_connect
+from app import app, db, ct_connect
 from flask import session
 from sqlalchemy import func
+import flask.ext.whooshalchemy as whooshalchemy
 import random
 import datetime
 
 
 class News(db.Model):
     __tablename__ = 'news'
+
     id = db.Column(db.Integer, primary_key=True)
     author_id = db.Column(db.Integer)
     title = db.Column(db.String(120))
@@ -26,6 +28,7 @@ class News(db.Model):
 
 class FrontPage(db.Model):
     __tablename__ = 'frontpage'
+
     id = db.Column(db.Integer, primary_key=True)
 
     first_row_image = db.Column(db.String(120))
@@ -43,6 +46,7 @@ class FrontPage(db.Model):
 
 class GroupMetadata(db.Model):
     __tablename__ = 'group_metadata'
+
     ct_id = db.Column(db.Integer, primary_key=True)
     avatar_id = db.Column(db.String(120))
     description = db.Column(db.String(700))
@@ -65,6 +69,7 @@ class GroupMetadata(db.Model):
 
 class UserMetadata(db.Model):
     __tablename__ = 'user_metadata'
+
     ct_id = db.Column(db.Integer, primary_key=True)
     avatar_id = db.Column(db.String(120))
     bio = db.Column(db.String(700))
@@ -92,6 +97,7 @@ class UserMetadata(db.Model):
 
 class Image(db.Model):
     __tablename__ = 'images'
+
     uuid = db.Column(db.String(120), primary_key=True)
     upload_date = db.Column(db.DateTime())
     upload_to = db.Column(db.String(120))
@@ -116,6 +122,7 @@ class Image(db.Model):
 
 class Prayer(db.Model):
     __tablename__ = 'prayers'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
     show_user = db.Column(db.Boolean())
@@ -143,6 +150,8 @@ class Prayer(db.Model):
 
 class WhatsUp(db.Model):
     __tablename__ = 'whatsup'
+    __searchable__ = ['subject', 'body']
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
     pub_date = db.Column(db.DateTime())
@@ -183,6 +192,8 @@ class WhatsUp(db.Model):
 
 class WhatsUpComment(db.Model):
     __tablename__ = 'whatsup_comments'
+    __searchable__ = ['body']
+
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey('whatsup.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
@@ -205,6 +216,7 @@ class WhatsUpComment(db.Model):
 
 class WhatsUpUpvote(db.Model):
     __tablename__ = 'whatsup_upvotes'
+
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey('whatsup.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
@@ -279,3 +291,16 @@ def get_latest_whatsup_comments(limit):
     return WhatsUpComment.query.order_by(
         WhatsUpComment.pub_date.desc()).limit(
             limit).all()
+
+
+def search_whatsup_posts(query):
+    return WhatsUp.query.whoosh_search(query).all()
+
+
+def search_whatsup_comments(query):
+    return WhatsUpComment.query.whoosh_search(query).all()
+
+
+# whoosh index stuff
+whooshalchemy.whoosh_index(app, WhatsUp)
+whooshalchemy.whoosh_index(app, WhatsUpComment)

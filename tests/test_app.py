@@ -431,6 +431,10 @@ def get_other_group_ids(id):
                     ct_session, i.id)]]
 
 
+def search(client, query):
+    return client.post('/search', data={'search': query}, follow_redirects=True)
+
+
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_login(client, test_user):
     ''' login user'''
@@ -1692,3 +1696,166 @@ def test_edit_index(client, image):
     assert '{}.jpg'.format(third_row_left_image) in rv.data
     assert 'http://vier.com' in rv.data
     assert '{}.jpg'.format(third_row_right_image) in rv.data
+
+
+def test_search_person():
+    with ct_connect.session_scope() as session:
+        # one word without capitalization
+        name = TEST_USER[1]['vorname'].lower()
+        rv = [i.id for i in ct_connect.search_person(session, name)]
+
+        assert TEST_USER[1]['id'] in rv
+        assert TEST_USER[2]['id'] in rv
+
+        # one word with capitalization
+        name = TEST_USER[1]['vorname'].capitalize()
+        rv = [i.id for i in ct_connect.search_person(session, name)]
+
+        assert TEST_USER[1]['id'] in rv
+        assert TEST_USER[2]['id'] in rv
+
+        # one word full capitalized
+        name = TEST_USER[1]['vorname'].upper()
+        rv = [i.id for i in ct_connect.search_person(session, name)]
+
+        assert TEST_USER[1]['id'] in rv
+        assert TEST_USER[2]['id'] in rv
+
+        # two words without capitalization
+        name = '{} {}'.format(TEST_USER[0]['vorname'].lower(),
+                              TEST_USER[0]['name'].lower())
+        rv = [i.id
+              for i in ct_connect.search_person(session, name)]
+
+        assert TEST_USER[0]['id'] in rv
+
+        # two words with capitalization
+        name = '{} {}'.format(TEST_USER[0]['vorname'].capitalize(),
+                              TEST_USER[0]['name'].capitalize())
+
+        rv = [i.id
+              for i in ct_connect.search_person(session, name)]
+
+        assert TEST_USER[0]['id'] in rv
+
+        # two words full capitalization
+        name = '{} {}'.format(TEST_USER[0]['vorname'].upper(),
+                              TEST_USER[0]['name'].upper())
+
+        rv = [i.id
+              for i in ct_connect.search_person(session, name)]
+
+        assert TEST_USER[0]['id'] in rv
+
+
+def test_search_whatsup(client):
+    test_user = TEST_USER[0]
+    login(client, test_user['email'], test_user['password'])
+
+    # add whatsup posts
+    add_whatsup_post(client, 'erstes subject', 'erster body')
+    sleep(1)
+    add_whatsup_post(client, 'zweites subject', 'zweiter body')
+    sleep(1)
+    add_whatsup_post(client, 'drittes subject', 'dritter body')
+    sleep(1)
+
+    # add comment
+    add_whatsup_comment(client, 1, 'erster kommentar')
+    add_whatsup_comment(client, 1, 'zweiter kommentar')
+
+    # search for erstes subject
+    rv = app.models.search_whatsup_posts('erstes')
+
+    assert len(rv) == 1
+    assert rv[0].subject == 'erstes subject'
+    assert rv[0].body == 'erster body'
+
+    rv = app.models.search_whatsup_posts('erstes subject')
+
+    assert len(rv) == 1
+    assert rv[0].subject == 'erstes subject'
+    assert rv[0].body == 'erster body'
+
+    # search for erster body
+    rv = app.models.search_whatsup_posts('erster body')
+
+    assert len(rv) == 1
+    assert rv[0].subject == 'erstes subject'
+    assert rv[0].body == 'erster body'
+
+    # search for the word subject
+    rv = [i.subject for i in app.models.search_whatsup_posts('subject')]
+
+    assert len(rv) == 3
+    assert 'erstes subject' in rv
+    assert 'zweites subject' in rv
+    assert 'drittes subject' in rv
+
+    # search for the word body
+    rv = [i.subject for i in app.models.search_whatsup_posts('body')]
+
+    assert len(rv) == 3
+    assert 'erstes subject' in rv
+    assert 'zweites subject' in rv
+    assert 'drittes subject' in rv
+
+    # search for comment
+    rv = app.models.search_whatsup_comments('erster')
+
+    assert len(rv) == 1
+    assert rv[0].body == 'erster kommentar'
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_search_view(client, test_user):
+    login(client, test_user['email'], test_user['password'])
+
+    # add whatsup posts
+    add_whatsup_post(client, 'erstes subject', 'erster body')
+    sleep(1)
+    add_whatsup_post(client, 'zweites subject', 'zweiter body')
+    sleep(1)
+    add_whatsup_post(client, 'drittes subject', 'dritter body')
+    sleep(1)
+
+    # add comment
+    add_whatsup_comment(client, 1, 'erster kommentar')
+    add_whatsup_comment(client, 1, 'zweiter kommentar')
+
+    # search for person
+    person = TEST_USER[0]
+
+    rv = search(client, 'marvin')
+    soup = BeautifulSoup(rv.data)
+
+    assert 'marvin' in soup.find_all('h1')[0].text
+    assert 'Personen' in soup.find_all('h2')[0]
+
+    assert '{} {}'.format(person['vorname'], person['name']).decode(
+        'utf-8') in soup.find_all('h4')[0].text
+
+    # search for post
+    rv = search(client, 'erster body')
+    soup = BeautifulSoup(rv.data)
+
+    assert 'erster body' in soup.find_all('h1')[0].text
+    assert 'Posts' in soup.find_all('h2')[0]
+
+    posts = [i.text for i in soup.find_all('div', class_='media-body')]
+
+    for post in posts:
+        assert 'erstes subject' in post
+        assert 'erster body' in post
+
+    # search for comment
+    rv = search(client, 'kommentar')
+    soup = BeautifulSoup(rv.data)
+
+    assert 'kommentar' in soup.find_all('h1')[0].text
+    assert 'Kommentare' in soup.find_all('h2')[0]
+
+    comments = [i.text for i in soup.find_all('div', class_='media-body')]
+
+    assert 'zweiter kommentar' in comments[0]
+    assert 'erster kommentar' in comments[1]

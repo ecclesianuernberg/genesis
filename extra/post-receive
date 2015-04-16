@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+# DEPRECATED: we use fabric now. the fabfile is in the repo
 # place this git hook script in /srv/git/genesis/hooks/
 #
 DEPLOY_DIR=/srv/www/genesis

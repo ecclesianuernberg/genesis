@@ -42,6 +42,9 @@ def install_app():
         # upgrade db
         run('env/bin/python manage.py db upgrade')
 
+        # rebuild whoosh index
+        run('env/bin/python manage.py whoosh_rebuild')
+
 
 def reload_apache():
     run('service apache2 reload')

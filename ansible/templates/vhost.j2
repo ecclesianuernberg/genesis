@@ -1,0 +1,31 @@
+<VirtualHost *:80>
+	ServerName meine.ecclesianuernberg.de
+	Redirect permanent / https://meine.ecclesianuernberg.de
+</VirtualHost>
+
+<VirtualHost *:443>
+	ServerName meine.ecclesianuernberg.de
+        SSLEngine on
+        SSLCertificateFile /etc/apache2/ssl/genesis.pem
+        SSLCertificateKeyFile /etc/apache2/ssl/genesis.key
+
+        WSGIDaemonProcess genesis user=www-data group=www-data threads=5
+        WSGIScriptAlias / {{ app_dir }}/app.wsgi
+
+	Alias /static {{ app_dir }}/app/static/
+
+        <Directory {{ app_dir }}>
+                WSGIProcessGroup genesis
+                WSGIApplicationGroup %{GLOBAL}
+		Options -Indexes
+                Order deny,allow
+                Allow from all
+        </Directory>
+
+
+        ErrorLog /var/log/apache2/error.log
+        LogLevel warn
+        CustomLog /var/log/apache2/access.log combined
+        ServerSignature On
+</VirtualHost>
+

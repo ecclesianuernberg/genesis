@@ -1,0 +1,5 @@
+activate_this = '{{ app_dir }}/env/bin/activate_this.py'
+execfile(activate_this, dict(__file__=activate_this))
+import sys
+sys.path.insert(0, '{{ app_dir }}')
+from app import app as application

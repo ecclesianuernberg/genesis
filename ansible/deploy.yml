@@ -1,0 +1,71 @@
+---
+- hosts: ecclesia
+  remote_user: root
+
+  vars:
+    repo: https://github.com/ecclesianuernberg/genesis
+    app_dir: /srv/www/genesis
+    app_user: www-data
+
+  tasks:
+
+  - name: force local testing before deployment
+    local_action: command tox -r
+
+  - name: clone repo
+    git: repo={{ repo }}
+         dest={{ app_dir }}
+         version=devel
+
+  - name: install system packages
+    apt: pkg={{ item }} state=latest
+    with_items:
+      - python-dev
+      - python-setuptools
+      - python-pip
+      - python-virtualenv
+      - libjpeg-dev
+
+  - name: virtualenv and install requirements
+    pip: requirements={{ app_dir }}/requirements.txt
+         virtualenv={{ app_dir }}/env
+         virtualenv_command=virtualenv
+
+  - name: create config
+    copy: src=files/config.py
+          dest={{ app_dir }}/config.py
+
+  - name: create log directory
+    file: path=/var/log/genesis
+          state=directory
+          owner={{ app_user }}
+          group={{ app_user }}
+
+  - name: check wsgi module
+    apache2_module: state=present name=wsgi
+
+  - name: create wsgi file
+    template: src=templates/app.wsgi.j2
+              dest={{ app_dir }}/app.wsgi
+
+  - name: copy vhost
+    template: src=templates/vhost.j2
+              dest=/etc/apache2/sites-available/genesis
+
+  - name: enable vhost
+    command: a2ensite genesis
+
+  - name: upgrade database
+    command: env/bin/python manage.py db upgrade chdir={{ app_dir }}
+
+  - name: rebuild whoosh index
+    command: env/bin/python manage.py whoosh_rebuild chdir={{ app_dir }}
+
+  - name: chown app dir
+    file: path={{ app_dir }}
+          recurse=yes
+          owner={{ app_user }}
+          group={{ app_user }}
+
+  - name: reload apache2
+    command: service apache2 reload

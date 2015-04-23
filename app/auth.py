@@ -2,10 +2,8 @@ from app import app, basic_auth, ct_connect
 from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
-from itsdangerous import (
-    TimedJSONWebSignatureSerializer as Serializer,
-    SignatureExpired,
-    BadSignature)
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
+                          SignatureExpired, BadSignature)
 from passlib.hash import bcrypt
 
 
@@ -14,18 +12,19 @@ def persons(user):
     the logged in email adress. '''
     person_list = []
     for person in user:
-        person_list.append({'email': person.email,
-                            'password': person.password,
-                            'id': person.id,
-                            'vorname': person.vorname,
-                            'name': person.name,
-                            'active': False})
+        person_list.append({
+            'email': person.email,
+            'password': person.password,
+            'id': person.id,
+            'vorname': person.vorname,
+            'name': person.name,
+            'active': False
+        })
 
     return person_list
 
 
 class CTUser(UserMixin):
-
     def __init__(self, uid=None, password=None, active=True):
         self.id = uid
         self.active = active
@@ -69,9 +68,7 @@ def generate_auth_token(user, expiration=600):
 
 def get_valid_users(user, password):
     ''' creates a list of valid users from user object and given password '''
-    return [person
-            for person in user.persons
-            if person['password']
+    return [person for person in user.persons if person['password']
             if bcrypt.verify(password, person['password'])]
 
 
@@ -123,7 +120,8 @@ def head_of_group_or_403(group_id):
             if not is_head:
                 abort_rest(403)
         else:
-            is_head = any(head.email == current_user.get_id() for head in heads)
+            is_head = any(head.email == current_user.get_id()
+                          for head in heads)
             if not is_head:
                 abort(403)
 
@@ -138,8 +136,7 @@ def prayer_owner_or_403(prayer_id):
         if prayer.user_id != g.user['id']:
             abort_rest(403)
     else:
-        if prayer.user_id != [user['id']
-                              for user in session['user']
+        if prayer.user_id != [user['id'] for user in session['user']
                               if user['active']][0]:
             abort(403)
 

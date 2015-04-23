@@ -3,20 +3,10 @@ from urlparse import urljoin
 from PIL import Image, ImageOps
 from passlib.hash import bcrypt
 from unidecode import unidecode
-from flask import (
-    render_template,
-    redirect,
-    request,
-    url_for,
-    flash,
-    session,
-    abort,
-    g)
-from flask.ext.login import (
-    login_user,
-    logout_user,
-    login_required,
-    current_user)
+from flask import (render_template, redirect, request, url_for, flash, session,
+                   abort, g)
+from flask.ext.login import (login_user, logout_user, login_required,
+                             current_user)
 import os.path
 import uuid
 import datetime
@@ -49,24 +39,18 @@ def save_image(image, request_path, user_id):
         image_uuid = str(uuid.uuid4())
 
         # resize image and save it to upload folder
-        image_resize(
-            image,
-            os.path.join(
-                app.root_path,
-                app.config['UPLOAD_FOLDER'],
-                image_uuid + '.jpg'),
-            size=800)
+        image_resize(image,
+                     os.path.join(app.root_path, app.config['UPLOAD_FOLDER'],
+                                  image_uuid + '.jpg'),
+                     size=800)
 
         # create thumbnail
-        create_thumbnail(
-            os.path.join(
-                app.root_path,
-                app.config['UPLOAD_FOLDER'],
-                image_uuid + '.jpg'),
-            os.path.join(
-                app.root_path,
-                app.config['UPLOAD_FOLDER'],
-                image_uuid + '-thumb.jpg'))
+        create_thumbnail(os.path.join(app.root_path,
+                                      app.config['UPLOAD_FOLDER'],
+                                      image_uuid + '.jpg'),
+                         os.path.join(app.root_path,
+                                      app.config['UPLOAD_FOLDER'],
+                                      image_uuid + '-thumb.jpg'))
 
         # check if user_metadata exists
         user_metadata = models.get_user_metadata(user_id)
@@ -76,11 +60,10 @@ def save_image(image, request_path, user_id):
             db.session.add(metadata)
 
         # generate image db entry
-        image = models.Image(
-            uuid=image_uuid,
-            upload_date=datetime.datetime.utcnow(),
-            upload_to=request_path,
-            user_id=user_id)
+        image = models.Image(uuid=image_uuid,
+                             upload_date=datetime.datetime.utcnow(),
+                             upload_to=request_path,
+                             user_id=user_id)
 
         db.session.add(image)
         db.session.commit()
@@ -149,34 +132,30 @@ def index_edit():
 
             # handle uploaded images
             form.first_row_image.data.stream.seek(0)
-            image = save_image(
-                image=form.first_row_image.data.stream,
-                request_path=request.path,
-                user_id=auth.active_user()['id'])
+            image = save_image(image=form.first_row_image.data.stream,
+                               request_path=request.path,
+                               user_id=auth.active_user()['id'])
             if image:
                 frontpage.first_row_image = image
 
             form.second_row_image.data.stream.seek(0)
-            image = save_image(
-                image=form.second_row_image.data.stream,
-                request_path=request.path,
-                user_id=auth.active_user()['id'])
+            image = save_image(image=form.second_row_image.data.stream,
+                               request_path=request.path,
+                               user_id=auth.active_user()['id'])
             if image:
                 frontpage.second_row_image = image
 
             form.third_row_left_image.data.stream.seek(0)
-            image = save_image(
-                image=form.third_row_left_image.data.stream,
-                request_path=request.path,
-                user_id=auth.active_user()['id'])
+            image = save_image(image=form.third_row_left_image.data.stream,
+                               request_path=request.path,
+                               user_id=auth.active_user()['id'])
             if image:
                 frontpage.third_row_left_image = image
 
             form.third_row_right_image.data.stream.seek(0)
-            image = save_image(
-                image=form.third_row_right_image.data.stream,
-                request_path=request.path,
-                user_id=auth.active_user()['id'])
+            image = save_image(image=form.third_row_right_image.data.stream,
+                               request_path=request.path,
+                               user_id=auth.active_user()['id'])
             if image:
                 frontpage.third_row_right_image = image
 
@@ -286,11 +265,10 @@ def group(id):
                 db.session.add(group_metadata)
 
             # prefill form with db data
-            form = forms.EditGroupForm(
-                description=group_metadata.description,
-                where=group.treffpunkt,
-                when=group.treffzeit,
-                audience=group.zielgruppe)
+            form = forms.EditGroupForm(description=group_metadata.description,
+                                       where=group.treffpunkt,
+                                       when=group.treffzeit,
+                                       audience=group.zielgruppe)
 
             # clicked submit
             if form.validate_on_submit():
@@ -341,9 +319,8 @@ def prayer():
     with ct_connect.session_scope() as ct_session:
         random_prayer = models.get_random_prayer()
         if random_prayer is not None:
-            user = ct_connect.get_person_from_id(
-                ct_session,
-                random_prayer.user_id)[0]
+            user = ct_connect.get_person_from_id(ct_session,
+                                                 random_prayer.user_id)[0]
         else:
             user = None
         return render_template('prayer.html',
@@ -388,11 +365,10 @@ def prayer_mine():
     # creating dict with all forms for own prayers
     edit_forms = {}
     for prayer in prayers:
-        edit_forms[prayer.id] = forms.AddPrayerForm(
-            prefix=str(prayer.id),
-            body=prayer.body,
-            show_user=prayer.show_user,
-            active=prayer.active)
+        edit_forms[prayer.id] = forms.AddPrayerForm(prefix=str(prayer.id),
+                                                    body=prayer.body,
+                                                    show_user=prayer.show_user,
+                                                    active=prayer.active)
 
     if request.method == 'POST':
         try:
@@ -485,13 +461,12 @@ def profile(id):
                 db.session.add(user_metadata)
 
             # try to prefill form
-            form = forms.EditProfileForm(
-                street=user[0].strasse,
-                postal_code=user[0].plz,
-                city=user[0].ort,
-                bio=user_metadata.bio,
-                twitter=user_metadata.twitter,
-                facebook=user_metadata.facebook)
+            form = forms.EditProfileForm(street=user[0].strasse,
+                                         postal_code=user[0].plz,
+                                         city=user[0].ort,
+                                         bio=user_metadata.bio,
+                                         twitter=user_metadata.twitter,
+                                         facebook=user_metadata.facebook)
 
             # clicked submit
             if form.validate_on_submit():
@@ -568,8 +543,7 @@ def mail(profile_or_group, id):
             # create sender tuple
             sender = [('{} {}'.format(unidecode(user['vorname']),
                                       unidecode(user['name'])), user['email'])
-                      for user in session['user']
-                      if user['active']][0]
+                      for user in session['user'] if user['active']][0]
 
             recipients = get_recipients(profile_or_group, id)
             mailing.send_email(sender=sender,
@@ -697,8 +671,7 @@ def whatsup_upvote(id):
         db.session.commit()
 
     # create upvote
-    upvote = models.WhatsUpUpvote(post_id=id,
-                                  user_id=user_id)
+    upvote = models.WhatsUpUpvote(post_id=id, user_id=user_id)
 
     # set active to now
     post.active = datetime.datetime.utcnow()
@@ -765,10 +738,9 @@ def whatsup_mine():
     # creating a dict with all edit forms
     edit_forms = {}
     for post in posts:
-        edit_forms[post.id] = forms.AddWhatsUp(
-            prefix=str(post.id),
-            subject=post.subject,
-            body=post.body)
+        edit_forms[post.id] = forms.AddWhatsUp(prefix=str(post.id),
+                                               subject=post.subject,
+                                               body=post.body)
 
     if request.method == 'POST':
         # extract id out of form id

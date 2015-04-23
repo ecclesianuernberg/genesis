@@ -10,14 +10,14 @@ from unidecode import unidecode
 @basic_auth.login_required
 def whatsup_recent_posts():
     feed = AtomFeed('Recent WhatsUp Posts',
-                    feed_url=request.url, url=request.url_root)
+                    feed_url=request.url,
+                    url=request.url_root)
 
     posts = models.get_latest_whatsup_posts(15)
 
     with ct_connect.session_scope() as ct_session:
         for post in posts:
-            feed.add(post.subject,
-                     unicode(post.body),
+            feed.add(post.subject, unicode(post.body),
                      content_type='text',
                      author='{} {}'.format(
                          unidecode(post.user.ct_data(ct_session).vorname),
@@ -32,25 +32,24 @@ def whatsup_recent_posts():
 @basic_auth.login_required
 def whatsup_recent_comments():
     feed = AtomFeed('Recent WhatsUp Comments',
-                    feed_url=request.url, url=request.url_root)
+                    feed_url=request.url,
+                    url=request.url_root)
 
     comments = models.get_latest_whatsup_comments(15)
 
     with ct_connect.session_scope() as ct_session:
         for comment in comments:
-            feed.add(
-                'Kommentar fuer "{}" von {} {}'.format(
-                    comment.post.subject,
-                    unidecode(comment.user.ct_data(ct_session).vorname),
-                    unidecode(comment.user.ct_data(ct_session).name)),
-                unicode(comment.body),
-                content_type='text',
-                author='{} {}'.format(
-                    unidecode(comment.user.ct_data(ct_session).vorname),
-                    unidecode(comment.user.ct_data(ct_session).name)),
-                url=make_external('whatsup/{}#comment{}'.format(
-                    comment.post.id,
-                    comment.id)),
-                updated=comment.pub_date)
+            feed.add('Kommentar fuer "{}" von {} {}'.format(
+                comment.post.subject,
+                unidecode(comment.user.ct_data(ct_session).vorname),
+                unidecode(comment.user.ct_data(ct_session).name)),
+                     unicode(comment.body),
+                     content_type='text',
+                     author='{} {}'.format(
+                         unidecode(comment.user.ct_data(ct_session).vorname),
+                         unidecode(comment.user.ct_data(ct_session).name)),
+                     url=make_external('whatsup/{}#comment{}'.format(
+                         comment.post.id, comment.id)),
+                     updated=comment.pub_date)
 
     return feed.get_response()

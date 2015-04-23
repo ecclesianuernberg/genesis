@@ -1,13 +1,7 @@
 from flask_wtf import Form
-from flask_wtf.file import (
-    FileField,
-    FileAllowed)
-from wtforms import (
-    BooleanField,
-    StringField,
-    PasswordField,
-    SubmitField,
-    TextAreaField)
+from flask_wtf.file import (FileField, FileAllowed)
+from wtforms import (BooleanField, StringField, PasswordField, SubmitField,
+                     TextAreaField)
 import wtforms.validators as validators
 from flask.ext.pagedown.fields import PageDownField
 
@@ -15,11 +9,9 @@ from flask.ext.pagedown.fields import PageDownField
 class LoginForm(Form):
     email = StringField(
         'Email',
-        validators=[validators.DataRequired(),
-                    validators.Email()])
-    password = PasswordField(
-        'Password',
-        validators=[validators.DataRequired()])
+        validators=[validators.DataRequired(), validators.Email()])
+    password = PasswordField('Password',
+                             validators=[validators.DataRequired()])
 
     submit = SubmitField('Login')
 
@@ -33,26 +25,22 @@ class EditGroupForm(Form):
     # metadata
     description = PageDownField('Beschreibung',
                                 validators=[validators.Length(max=700)])
-    group_image = FileField(
-        'Bild',
-        validators=[FileAllowed(['jpg'], 'Nur JPGs')])
+    group_image = FileField('Bild',
+                            validators=[FileAllowed(['jpg'], 'Nur JPGs')])
 
     # submit
     submit = SubmitField('Submit')
 
 
 class EditIndexForm(Form):
-    first_row_image = FileField(
-        'Erste Reihe Bild',
-        validators=[FileAllowed(['jpg'], 'Nur JPGs')])
+    first_row_image = FileField('Erste Reihe Bild',
+                                validators=[FileAllowed(['jpg'], 'Nur JPGs')])
 
-    first_row_link = StringField(
-        'Erste Reihe Link',
-        validators=[validators.URL(require_tld=True)])
+    first_row_link = StringField('Erste Reihe Link',
+                                 validators=[validators.URL(require_tld=True)])
 
-    second_row_image = FileField(
-        'Zweite Reihe Bild',
-        validators=[FileAllowed(['jpg'], 'Nur JPGs')])
+    second_row_image = FileField('Zweite Reihe Bild',
+                                 validators=[FileAllowed(['jpg'], 'Nur JPGs')])
 
     second_row_link = StringField(
         'Zweite Reihe Link',
@@ -92,12 +80,10 @@ class AddPrayerForm(Form):
 
 class EditProfileForm(Form):
     # churchtools
-    password = PasswordField(
-        'Neues Password',
-        validators=[validators.EqualTo('confirm')])
+    password = PasswordField('Neues Password',
+                             validators=[validators.EqualTo('confirm')])
 
-    confirm = PasswordField(
-        'Confirm Password')
+    confirm = PasswordField('Confirm Password')
 
     street = StringField('Strasse')
 
@@ -106,16 +92,13 @@ class EditProfileForm(Form):
     city = StringField('Ort')
 
     # metadata
-    bio = PageDownField('Bio',
-                        validators=[validators.Length(max=700)])
+    bio = PageDownField('Bio', validators=[validators.Length(max=700)])
 
-    user_image = FileField(
-        'Bild',
-        validators=[FileAllowed(['jpg'], 'Nur JPGs')])
+    user_image = FileField('Bild',
+                           validators=[FileAllowed(['jpg'], 'Nur JPGs')])
 
-    twitter = StringField(
-        'Twitter',
-        validators=[validators.optional(), validators.URL()])
+    twitter = StringField('Twitter',
+                          validators=[validators.optional(), validators.URL()])
 
     facebook = StringField(
         'Facebook',
@@ -126,33 +109,29 @@ class EditProfileForm(Form):
 
 
 class MailForm(Form):
-    subject = StringField(
-        'Betreff',
-        validators=[validators.DataRequired()])
+    subject = StringField('Betreff', validators=[validators.DataRequired()])
 
-    body = TextAreaField(
-        'Nachricht',
-        validators=[validators.DataRequired()])
+    body = TextAreaField('Nachricht', validators=[validators.DataRequired()])
 
     submit = SubmitField('Submit')
 
 
 class AddWhatsUp(Form):
-    subject = StringField('Subject',
-                          validators=[validators.DataRequired(),
-                                      validators.Length(max=120)])
+    subject = StringField(
+        'Subject',
+        validators=[validators.DataRequired(), validators.Length(max=120)])
 
-    body = TextAreaField('Body',
-                         validators=[validators.DataRequired(),
-                                     validators.Length(max=700)])
+    body = TextAreaField(
+        'Body',
+        validators=[validators.DataRequired(), validators.Length(max=700)])
 
     submit = SubmitField('Submit')
 
 
 class AddWhatsUpComment(Form):
-    body = TextAreaField('Kommentar',
-                         validators=[validators.DataRequired(),
-                                     validators.Length(max=700)])
+    body = TextAreaField(
+        'Kommentar',
+        validators=[validators.DataRequired(), validators.Length(max=700)])
 
     submit = SubmitField('Submit')
 

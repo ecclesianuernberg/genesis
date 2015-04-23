@@ -4,9 +4,7 @@ from flask_mail import Message
 
 
 def send_email(subject, sender, recipients, body):
-    msg = Message(subject,
-                  sender=sender,
-                  recipients=recipients)
+    msg = Message(subject, sender=sender, recipients=recipients)
     msg.body = render_template('mail_signature.txt',
                                name=app.config['NAME'],
                                body=body)

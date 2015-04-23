@@ -3,7 +3,6 @@ from flask.ext.script import Manager, Server
 import os
 import flask_whooshalchemy
 
-
 # set FLASK_CONFIG environment variable and import app
 os.environ['FLASK_CONFIG'] = 'development'
 from app import app, models
@@ -38,13 +37,14 @@ def whoosh_rebuild():
                 writer.update_document(**index_attrs)
                 entry_count += 1
 
-        print 'Rebuilt {0} {1} search index entries.'.format(
-            str(entry_count), model.__name__)
+        print 'Rebuilt {0} {1} search index entries.'.format(str(entry_count),
+                                                             model.__name__)
 
     model_list = [models.WhatsUp, models.WhatsUpComment]
 
     for model in model_list:
         rebuild_index(model)
+
 
 if __name__ == '__main__':
     manager.run()

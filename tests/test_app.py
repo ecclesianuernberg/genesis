@@ -16,8 +16,7 @@ import feedparser
 from config import config
 from app import ct_connect, auth, mailing
 from datetime import datetime
-from itsdangerous import (
-    TimedJSONWebSignatureSerializer as Serializer)
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
 from passlib.hash import bcrypt
 from PIL import Image
 from random import choice
@@ -25,7 +24,6 @@ from unidecode import unidecode
 from bs4 import BeautifulSoup
 from time import sleep
 from werkzeug.exceptions import NotFound
-
 
 # loading config
 app.app.config.from_object(config['testing'])
@@ -191,14 +189,17 @@ def ct_delete_person(user_data):
 
 @pytest.fixture
 def ct_same_username_and_password(request):
-    user_data = [{'email': 'test@test.com',
-                  'password': 'testpassword',
-                  'vorname': 'Testvorname',
-                  'name': 'Testnachname'},
-                 {'email': 'test@test.com',
-                  'password': 'testpassword',
-                  'vorname': 'AnotherTestvorname',
-                  'name': 'AnotherTestnachname'}]
+    user_data = [{
+        'email': 'test@test.com',
+        'password': 'testpassword',
+        'vorname': 'Testvorname',
+        'name': 'Testnachname'
+    }, {
+        'email': 'test@test.com',
+        'password': 'testpassword',
+        'vorname': 'AnotherTestvorname',
+        'name': 'AnotherTestnachname'
+    }]
 
     ct_create_person(user_data)
 
@@ -219,9 +220,10 @@ def get_wrong_user_id(own_id):
 
 def login(client, email, password):
     ''' helper function to login '''
-    return client.post('/login', data={
-        'email': email,
-        'password': password}, follow_redirects=True)
+    return client.post('/login',
+                       data={'email': email,
+                             'password': password},
+                       follow_redirects=True)
 
 
 def logout(client):
@@ -231,10 +233,11 @@ def logout(client):
 
 def add_prayer(client, body):
     ''' helper to add a new prayer '''
-    return client.post('/prayer/add', data={
-        'body': body,
-        'active': True,
-        'show_user': True}, follow_redirects=True)
+    return client.post('/prayer/add',
+                       data={'body': body,
+                             'active': True,
+                             'show_user': True},
+                       follow_redirects=True)
 
 
 def edit_prayer(client, id, body, active=False, show_user=False):
@@ -246,22 +249,27 @@ def edit_prayer(client, id, body, active=False, show_user=False):
     # even more bizarr: you can send "active: False" and it returns in a True.
     if active and show_user:
         return client.post('/prayer/mine',
-                           data={'{}-body'.format(id): body,
-                                 '{}-active'.format(id): True,
-                                 '{}-show_user'.format(id): True},
+                           data={
+                               '{}-body'.format(id): body,
+                               '{}-active'.format(id): True,
+                               '{}-show_user'.format(id): True
+                           },
                            follow_redirects=True)
 
     elif active:
-        return client.post('/prayer/mine',
-                           data={'{}-body'.format(id): body,
-                                 '{}-active'.format(id): True},
-                           follow_redirects=True)
+        return client.post(
+            '/prayer/mine',
+            data={'{}-body'.format(id): body,
+                  '{}-active'.format(id): True},
+            follow_redirects=True)
 
     elif show_user:
-        return client.post('/prayer/mine',
-                           data={'{}-body'.format(id): body,
-                                 '{}-show_user'.format(id): True},
-                           follow_redirects=True)
+        return client.post(
+            '/prayer/mine',
+            data=
+            {'{}-body'.format(id): body,
+             '{}-show_user'.format(id): True},
+            follow_redirects=True)
 
     else:
         return client.post('/prayer/mine',
@@ -271,30 +279,28 @@ def edit_prayer(client, id, body, active=False, show_user=False):
 
 def del_prayer(client, id):
     ''' helper to delete a prayer '''
-    return client.get('/prayer/{}/del'.format(id),
-                      follow_redirects=True)
+    return client.get('/prayer/{}/del'.format(id), follow_redirects=True)
 
 
 def edit_group(client, id, description, where, when, audience, image):
     ''' helper to edit group '''
     with open(image) as f:
         return client.post('/group/{}'.format(id),
-                           data={'description': description,
-                                 'group_image': (f, 'test.jpg'),
-                                 'where': where,
-                                 'when': when,
-                                 'audience': audience},
+                           data={
+                               'description': description,
+                               'group_image': (f, 'test.jpg'),
+                               'where': where,
+                               'when': when,
+                               'audience': audience
+                           },
                            follow_redirects=True)
 
 
 def create_api_creds(username, password):
     ''' helper to create creds for api usage '''
-    user_password = b'{}:{}'.format(
-        username,
-        password)
+    user_password = b'{}:{}'.format(username, password)
 
-    return base64.b64encode(user_password).decode(
-        'utf-8').strip('\r\n')
+    return base64.b64encode(user_password).decode('utf-8').strip('\r\n')
 
 
 def get_api_token(client, creds):
@@ -314,12 +320,14 @@ def add_prayer_api(client, body, creds):
 
 def edit_prayer_api(client, id, body, creds, active, show_user):
     ''' helper to add a new prayer '''
-    return client.put('/api/prayer/{}'.format(id),
-                      headers={'Authorization': 'Basic ' + creds},
-                      data=json.dumps({'body': body,
-                                       'active': active,
-                                       'show_user': show_user}),
-                      content_type='application/json')
+    return client.put(
+        '/api/prayer/{}'.format(id),
+        headers={'Authorization': 'Basic ' + creds},
+        data=json.dumps(
+            {'body': body,
+             'active': active,
+             'show_user': show_user}),
+        content_type='application/json')
 
 
 def del_prayer_api(client, id, creds):
@@ -329,27 +337,21 @@ def del_prayer_api(client, id, creds):
                          content_type='application/json')
 
 
-def edit_profile(client,
-                 id,
-                 street,
-                 postal_code,
-                 city,
-                 bio,
-                 password,
-                 twitter,
-                 facebook,
-                 image):
+def edit_profile(client, id, street, postal_code, city, bio, password, twitter,
+                 facebook, image):
     with open(image) as f:
         return client.post('/profile/{}'.format(id),
-                           data={'street': street,
-                                 'postal_code': postal_code,
-                                 'city': city,
-                                 'bio': bio,
-                                 'twitter': twitter,
-                                 'facebook': facebook,
-                                 'password': password,
-                                 'confirm': password,
-                                 'user_image': (f, 'test.jpg')},
+                           data={
+                               'street': street,
+                               'postal_code': postal_code,
+                               'city': city,
+                               'bio': bio,
+                               'twitter': twitter,
+                               'facebook': facebook,
+                               'password': password,
+                               'confirm': password,
+                               'user_image': (f, 'test.jpg')
+                           },
                            follow_redirects=True)
 
 
@@ -368,8 +370,7 @@ def add_whatsup_post(client, subject, body, url='/whatsup'):
 
 
 def add_whatsup_upvote(client, id):
-    return client.get('/whatsup/{}/upvote'.format(id),
-                      follow_redirects=True)
+    return client.get('/whatsup/{}/upvote'.format(id), follow_redirects=True)
 
 
 def add_whatsup_comment(client, id, body):
@@ -379,10 +380,11 @@ def add_whatsup_comment(client, id, body):
 
 
 def edit_whatsup_post(client, id, subject, body):
-    return client.post('/whatsup/mine',
-                       data={'{}-subject'.format(id): subject,
-                             '{}-body'.format(id): body},
-                       follow_redirects=True)
+    return client.post(
+        '/whatsup/mine',
+        data={'{}-subject'.format(id): subject,
+              '{}-body'.format(id): body},
+        follow_redirects=True)
 
 
 def get_whatsup_feed_posts(client, creds):
@@ -397,42 +399,39 @@ def get_whatsup_feed_comments(client, creds):
                       content_type='application/json')
 
 
-def edit_index(client,
-               image,
-               first_row_link,
-               second_row_link,
-               third_row_left_link,
-               third_row_right_link):
+def edit_index(client, image, first_row_link, second_row_link,
+               third_row_left_link, third_row_right_link):
     return client.post('/edit',
-                       data={'first_row_link': first_row_link,
-                             'first_row_image': (open(image), '1.jpg'),
-                             'second_row_link': second_row_link,
-                             'second_row_image': (open(image), '2.jpg'),
-                             'third_row_left_link': third_row_left_link,
-                             'third_row_left_image': (open(image), '3.jpg'),
-                             'third_row_right_link': third_row_right_link,
-                             'third_row_right_image': (open(image), '4.jpg')},
+                       data={
+                           'first_row_link': first_row_link,
+                           'first_row_image': (open(image), '1.jpg'),
+                           'second_row_link': second_row_link,
+                           'second_row_image': (open(image), '2.jpg'),
+                           'third_row_left_link': third_row_left_link,
+                           'third_row_left_image': (open(image), '3.jpg'),
+                           'third_row_right_link': third_row_right_link,
+                           'third_row_right_image': (open(image), '4.jpg')
+                       },
                        follow_redirects=True)
 
 
 def get_own_group_ids(id):
     with ct_connect.session_scope() as ct_session:
-        return [i.id
-                for i in ct_connect.get_active_groups(ct_session)
-                for j in ct_connect.get_group_heads(ct_session, i.id)
-                if j.id == id]
+        return [i.id for i in ct_connect.get_active_groups(ct_session) for j in
+                ct_connect.get_group_heads(ct_session, i.id) if j.id == id]
 
 
 def get_other_group_ids(id):
     with ct_connect.session_scope() as ct_session:
-        return [i.id
-                for i in ct_connect.get_active_groups(ct_session)
-                if id not in [j.id for j in ct_connect.get_group_heads(
-                    ct_session, i.id)]]
+        return [i.id for i in ct_connect.get_active_groups(ct_session)
+                if id not in [j.id for j in
+                              ct_connect.get_group_heads(ct_session, i.id)]]
 
 
 def search(client, query):
-    return client.post('/search', data={'search': query}, follow_redirects=True)
+    return client.post('/search',
+                       data={'search': query},
+                       follow_redirects=True)
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -548,22 +547,17 @@ def test_ct_change_user_password(test_user):
         # check if test_user password is the one in the churchtools-db
         db_user = ct_connect.get_person_from_id(ct_session, test_user['id'])[0]
 
-        assert bcrypt.verify(
-            test_user['password'],
-            db_user.password)
+        assert bcrypt.verify(test_user['password'], db_user.password)
 
         # new password
         password = 'newpassword'
         ct_connect.change_user_password(ct_session, test_user['id'], password)
         db_user = ct_connect.get_person_from_id(ct_session, test_user['id'])[0]
 
-        assert bcrypt.verify(
-            password,
-            db_user.password)
+        assert bcrypt.verify(password, db_user.password)
 
         # reset password
-        ct_connect.change_user_password(ct_session,
-                                        test_user['id'],
+        ct_connect.change_user_password(ct_session, test_user['id'],
                                         test_user['password'])
 
 
@@ -574,9 +568,7 @@ def test_access_index(client, test_user):
     assert rv.status_code == 302
 
     # logged in
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/')
     assert rv.status_code == 200
@@ -591,9 +583,7 @@ def test_access_prayer(client, test_user):
     assert rv.status_code == 302
 
     # logged in
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/prayer')
 
@@ -612,30 +602,26 @@ def test_random_prayer(client):
     rv = client.get('/prayer')
     soup = BeautifulSoup(rv.data)
 
-    assert '{} {}'.format(
-        test_user['vorname'],
-        test_user['name']) == soup.find_all('div',
-                                            class_='panel-heading')[0].text
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) == soup.find_all(
+                              'div',
+                              class_='panel-heading')[0].text
 
     # prayer body
-    assert prayer in soup.find_all('div',
-                                   class_='panel-body')[0].text
+    assert prayer in soup.find_all('div', class_='panel-body')[0].text
 
     # prayer with unabled show_user
     edit_prayer(client, 1, prayer, active=True)
     rv = client.get('/prayer')
     soup = BeautifulSoup(rv.data)
 
-    assert soup.find_all('div',
-                         class_='panel-heading')[0].text == ''
+    assert soup.find_all('div', class_='panel-heading')[0].text == ''
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_add_prayer(client, test_user):
     ''' adding prayer '''
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     prayer = 'Test-Anliegen'
     rv = add_prayer(client, prayer)
@@ -655,9 +641,7 @@ def test_add_prayer(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_edit_prayer(client, test_user):
     ''' editing prayer '''
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     # add prayer
     prayer = 'Test-Anliegen'
@@ -681,9 +665,7 @@ def test_edit_prayer(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_del_prayer(client, test_user):
     '''delete prayer'''
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     # add prayer to delete it
     add_prayer(client, 'Ein Test zum entfernen')
@@ -703,9 +685,7 @@ def test_access_group_list(client, test_user):
     assert rv.status_code == 302
 
     # logged in
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/groups')
 
@@ -744,9 +724,7 @@ def test_access_group(client, test_user):
     assert rv.status_code == 302
 
     # logged in
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/group/1')
 
@@ -759,13 +737,10 @@ def test_group_edit_allowed(client, reset_ct_group, own_group, image):
     test_user = TEST_USER[0]
 
     # login
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     # edit
-    rv = edit_group(client,
-                    own_group,
+    rv = edit_group(client, own_group,
                     description='Dies ist ein Test',
                     where='In der Ecclesia',
                     when='Jeden Sonntag',
@@ -797,13 +772,10 @@ def test_group_edit_forbidden(client, not_own_group, image):
     test_user = TEST_USER[0]
 
     # login
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     # edit
-    rv = edit_group(client,
-                    not_own_group,
+    rv = edit_group(client, not_own_group,
                     description='Dies ist ein Test',
                     where='In der Ecclesia',
                     when='Jeden Sonntag',
@@ -989,19 +961,14 @@ def test_persons():
 def test_navbar_profile_links(client, test_user):
     ''' profile link in navbar '''
     rv = client.get('/')
-    assert '{} {}'.format(
-        test_user['vorname'],
-        test_user['name']) not in rv.data
+    assert '{} {}'.format(test_user['vorname'],
+                          test_user['name']) not in rv.data
 
     # now login
-    login(client,
-          test_user['email'],
-          test_user['password'])
+    login(client, test_user['email'], test_user['password'])
 
     rv = client.get('/')
-    assert '{} {}'.format(
-        test_user['vorname'],
-        test_user['name']) in rv.data
+    assert '{} {}'.format(test_user['vorname'], test_user['name']) in rv.data
 
 
 def test_navbar_profile_links_same_auth(client, ct_same_username_and_password):
@@ -1013,30 +980,22 @@ def test_navbar_profile_links_same_auth(client, ct_same_username_and_password):
     rv = client.get('/')
 
     for user in ct_same_username_and_password:
-        assert '{} {}'.format(
-            user['vorname'],
-            user['name']) in rv.data
+        assert '{} {}'.format(user['vorname'], user['name']) in rv.data
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_get_valid_users(test_user):
     ''' list of valid users '''
-    user = auth.CTUser(
-        uid=test_user['email'],
-        password=test_user['password']).get_user()
+    user = auth.CTUser(uid=test_user['email'],
+                       password=test_user['password']).get_user()
 
-    assert auth.get_valid_users(
-        user,
-        test_user['password'])
+    assert auth.get_valid_users(user, test_user['password'])
 
     # wrong password
-    user = auth.CTUser(
-        uid=test_user['email'],
-        password='wrongpassword').get_user()
+    user = auth.CTUser(uid=test_user['email'],
+                       password='wrongpassword').get_user()
 
-    assert not auth.get_valid_users(
-        user,
-        'wrongpassword')
+    assert not auth.get_valid_users(user, 'wrongpassword')
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -1051,8 +1010,8 @@ def test_access_profile(client, test_user):
     rv = client.get('/profile/{}'.format(test_user['id']))
 
     assert rv.status_code == 200
-    assert '<h1>{} {}'.format(
-        test_user['vorname'], test_user['name']) in rv.data
+    assert '<h1>{} {}'.format(test_user['vorname'],
+                              test_user['name']) in rv.data
     assert 'avatar.png' in rv.data
 
     # not exisiting profile
@@ -1064,8 +1023,7 @@ def test_access_profile(client, test_user):
 def test_edit_profile_button(client, test_user):
     login(client, test_user['email'], test_user['password'])
 
-    rv = client.get('/profile/{}'.format(
-        get_wrong_user_id(test_user['id'])))
+    rv = client.get('/profile/{}'.format(get_wrong_user_id(test_user['id'])))
     assert 'edit' not in rv.data
 
     rv = client.get('/profile/{}'.format(test_user['id']))
@@ -1228,21 +1186,15 @@ def test_save_image(client, image):
 def test_admin_access_logged_in(client, test_user, status_code):
     login(client, test_user['email'], test_user['password'])
 
-    for view in ['newsview',
-                 'groupmetadataview',
-                 'usermetadataview',
-                 'imageview',
-                 'prayerview']:
+    for view in ['newsview', 'groupmetadataview', 'usermetadataview',
+                 'imageview', 'prayerview']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == status_code
 
 
 def test_admin_access_logged_out(client):
-    for view in ['newsview',
-                 'groupmetadataview',
-                 'usermetadataview',
-                 'imageview',
-                 'prayerview']:
+    for view in ['newsview', 'groupmetadataview', 'usermetadataview',
+                 'imageview', 'prayerview']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == 403
 
@@ -1276,8 +1228,7 @@ def test_get_recipients(test_user):
 
     # group
     rv = app.views.get_recipients('group', 1)
-    assert rv == ['test.leiter@ecclesianuernberg.de',
-                  'xsteadfastx@gmail.com']
+    assert rv == ['test.leiter@ecclesianuernberg.de', 'xsteadfastx@gmail.com']
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -1302,17 +1253,14 @@ def test_mail(client, test_user):
 
     with app.mail.record_messages() as outbox:
         login(client, test_user['email'], test_user['password'])
-        rv = send_mail(client,
-                       '/mail/profile/{}'.format(test_user['id']),
-                       'Testsubject',
-                       'Testbody')
+        rv = send_mail(client, '/mail/profile/{}'.format(test_user['id']),
+                       'Testsubject', 'Testbody')
 
         assert rv.status_code == 200
         assert 'Email gesendet!' in rv.data
         assert outbox[0].sender == '{} {} <{}>'.format(
             unidecode(test_user['vorname'].decode('utf-8')),
-            unidecode(test_user['name'].decode('utf-8')),
-            test_user['email'])
+            unidecode(test_user['name'].decode('utf-8')), test_user['email'])
         assert outbox[0].recipients == recipients
         assert outbox[0].subject == subject
         assert body in outbox[0].body
@@ -1661,12 +1609,8 @@ def test_edit_index(client, image):
 
     assert rv.status_code == 200
 
-    rv = edit_index(client,
-                    image,
-                    'http://eins.com',
-                    'http://zwei.com',
-                    'http://drei.com',
-                    'http://vier.com')
+    rv = edit_index(client, image, 'http://eins.com', 'http://zwei.com',
+                    'http://drei.com', 'http://vier.com')
 
     # check db
     rv = app.models.FrontPage.query.all()[-1]
@@ -1724,8 +1668,7 @@ def test_search_person():
         # two words without capitalization
         name = '{} {}'.format(TEST_USER[0]['vorname'].lower(),
                               TEST_USER[0]['name'].lower())
-        rv = [i.id
-              for i in ct_connect.search_person(session, name)]
+        rv = [i.id for i in ct_connect.search_person(session, name)]
 
         assert TEST_USER[0]['id'] in rv
 
@@ -1733,8 +1676,7 @@ def test_search_person():
         name = '{} {}'.format(TEST_USER[0]['vorname'].capitalize(),
                               TEST_USER[0]['name'].capitalize())
 
-        rv = [i.id
-              for i in ct_connect.search_person(session, name)]
+        rv = [i.id for i in ct_connect.search_person(session, name)]
 
         assert TEST_USER[0]['id'] in rv
 
@@ -1742,8 +1684,7 @@ def test_search_person():
         name = '{} {}'.format(TEST_USER[0]['vorname'].upper(),
                               TEST_USER[0]['name'].upper())
 
-        rv = [i.id
-              for i in ct_connect.search_person(session, name)]
+        rv = [i.id for i in ct_connect.search_person(session, name)]
 
         assert TEST_USER[0]['id'] in rv
 

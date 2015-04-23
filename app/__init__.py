@@ -12,7 +12,6 @@ from flask_mail import Mail
 from config import config
 import os
 
-
 app = Flask(__name__)
 
 # config handling
@@ -31,9 +30,9 @@ if not app.debug and not app.testing:
     file_handler = RotatingFileHandler('/var/log/genesis/genesis.log')
     file_handler.setLevel(logging.DEBUG)
 
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]'))
+    file_handler.setFormatter(
+        logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+                          '[in %(pathname)s:%(lineno)d]'))
 
     app.logger.addHandler(file_handler)
 
@@ -76,7 +75,6 @@ login_manager.login_view = 'login'
 def load_user(userid):
     import auth
     return auth.CTUser(uid=userid)
-
 
 # import
 import views

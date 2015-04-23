@@ -1,6 +1,5 @@
 from fabric.api import *
 
-
 env.user = 'root'
 env.hosts = ['ecclesianuernberg.de']
 env.git_remote_name = 'deploy'
@@ -35,8 +34,7 @@ def install_app():
         run('env/bin/pip install -r requirements.txt')
 
         # change permissions for all files
-        run('chown -Rv {}:{} {}'.format(env.app_user,
-                                        env.app_user,
+        run('chown -Rv {}:{} {}'.format(env.app_user, env.app_user,
                                         env.app_dir))
 
         # upgrade db

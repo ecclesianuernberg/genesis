@@ -1,12 +1,7 @@
 from app import app, api, basic_auth, db, ct_connect, models
 from datetime import datetime
 from flask import jsonify, g
-from flask.ext.restful import (
-    Resource,
-    reqparse,
-    fields,
-    marshal_with,
-    abort)
+from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
 from unidecode import unidecode
 from models import get_random_prayer, get_prayer
 from auth import prayer_owner_or_403, generate_auth_token
@@ -14,9 +9,7 @@ from auth import prayer_owner_or_403, generate_auth_token
 
 def get_users_name(email):
     person = ct_connect.get_person(email)
-    name = '{} {}'.format(
-        unidecode(person.vorname),
-        unidecode(person.name))
+    name = '{} {}'.format(unidecode(person.vorname), unidecode(person.name))
     return name
 
 
@@ -27,7 +20,8 @@ def create_prayer_fields(endpoint):
         'name': fields.String,
         'id': fields.Integer,
         'pub_date': fields.DateTime,
-        'uri': fields.Url(endpoint)}
+        'uri': fields.Url(endpoint)
+    }
 
 
 @app.route('/api/token')
@@ -48,19 +42,12 @@ class PrayerObject(object):
 class PrayerAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument(
-            'body',
-            type=str,
-            required=True,
-            location='json')
-        self.reqparse.add_argument(
-            'active',
-            type=bool,
-            location='json')
-        self.reqparse.add_argument(
-            'show_user',
-            type=bool,
-            location='json')
+        self.reqparse.add_argument('body',
+                                   type=str,
+                                   required=True,
+                                   location='json')
+        self.reqparse.add_argument('active', type=bool, location='json')
+        self.reqparse.add_argument('show_user', type=bool, location='json')
 
         super(PrayerAPI, self).__init__()
 
@@ -91,12 +78,11 @@ class PrayerAPI(Resource):
             db.session.add(metadata)
             db.session.commit()
 
-        prayer = models.Prayer(
-            user_id=g.user['id'],
-            show_user=args['show_user'],
-            active=True,
-            pub_date=datetime.utcnow(),
-            body=args['body'])
+        prayer = models.Prayer(user_id=g.user['id'],
+                               show_user=args['show_user'],
+                               active=True,
+                               pub_date=datetime.utcnow(),
+                               body=args['body'])
 
         db.session.add(prayer)
         db.session.commit()
@@ -115,18 +101,9 @@ class PrayerAPI(Resource):
 class PrayerAPIEdit(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument(
-            'body',
-            type=str,
-            location='json')
-        self.reqparse.add_argument(
-            'active',
-            type=bool,
-            location='json')
-        self.reqparse.add_argument(
-            'show_user',
-            type=bool,
-            location='json')
+        self.reqparse.add_argument('body', type=str, location='json')
+        self.reqparse.add_argument('active', type=bool, location='json')
+        self.reqparse.add_argument('show_user', type=bool, location='json')
 
         super(PrayerAPIEdit, self).__init__()
 
@@ -173,10 +150,6 @@ class PrayerAPIEdit(Resource):
             abort(404)
 
 
-api.add_resource(
-    PrayerAPI,
-    '/api/prayer')
+api.add_resource(PrayerAPI, '/api/prayer')
 
-api.add_resource(
-    PrayerAPIEdit,
-    '/api/prayer/<int:id>')
+api.add_resource(PrayerAPIEdit, '/api/prayer/<int:id>')

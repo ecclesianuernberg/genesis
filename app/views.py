@@ -541,9 +541,10 @@ def mail(profile_or_group, id):
     if form.validate_on_submit():
         try:
             # create sender tuple
-            sender = [('{} {}'.format(unidecode(user['vorname']),
-                                      unidecode(user['name'])), user['email'])
-                      for user in session['user'] if user['active']][0]
+            active_user = auth.active_user()
+            sender = ('{} {}'.format(unidecode(active_user['vorname']),
+                                     unidecode(active_user['name'])),
+                      active_user['email'])
 
             recipients = get_recipients(profile_or_group, id)
             mailing.send_email(sender=sender,
@@ -570,33 +571,28 @@ def whatsup_overview():
     form = forms.AddWhatsUp()
 
     if form.validate_on_submit():
-        try:
-            user_id = auth.active_user()['id']
+        user_id = auth.active_user()['id']
 
-            # check if user_metadata exists
-            user_metadata = models.get_user_metadata(user_id)
+        # check if user_metadata exists
+        user_metadata = models.get_user_metadata(user_id)
 
-            if not user_metadata:
-                metadata = models.UserMetadata(user_id)
-                db.session.add(metadata)
-                db.session.commit()
-
-            # create post
-            new_post = models.WhatsUp(user_id=user_id,
-                                      pub_date=datetime.datetime.utcnow(),
-                                      active=datetime.datetime.utcnow(),
-                                      subject=form.subject.data,
-                                      body=form.body.data)
-
-            db.session.add(new_post)
+        if not user_metadata:
+            metadata = models.UserMetadata(user_id)
+            db.session.add(metadata)
             db.session.commit()
 
-            flash('Post abgeschickt!', 'success')
-            return redirect(redirect_url(default='whatsup_overview'))
+        # create post
+        new_post = models.WhatsUp(user_id=user_id,
+                                  pub_date=datetime.datetime.utcnow(),
+                                  active=datetime.datetime.utcnow(),
+                                  subject=form.subject.data,
+                                  body=form.body.data)
 
-        except:
-            flash('Fehler aufgetreten!', 'danger')
-            return redirect(redirect_url(default='whatsup_overview'))
+        db.session.add(new_post)
+        db.session.commit()
+
+        flash('Post abgeschickt!', 'success')
+        return redirect(redirect_url(default='whatsup_overview'))
 
     # ct_data needs a db session to access the ct database
     with ct_connect.session_scope() as ct_session:
@@ -687,40 +683,54 @@ def whatsup_upvote(id):
 @app.route('/whatsup/<int:id>', methods=['GET', 'POST'])
 @login_required
 def whatsup_post(id):
-    post = models.get_whatsup_post(id)
-    form = forms.AddWhatsUpComment()
+    with ct_connect.session_scope() as ct_session:
+        post = models.get_whatsup_post(id)
+        form = forms.AddWhatsUpComment()
 
-    if form.validate_on_submit():
-        try:
-            user_id = auth.active_user()['id']
+        if form.validate_on_submit():
+            try:
+                active_user = auth.active_user()
+                user_id = active_user['id']
 
-            # check if user_metadata exists
-            user_metadata = models.get_user_metadata(user_id)
+                # check if user_metadata exists
+                user_metadata = models.get_user_metadata(user_id)
 
-            if not user_metadata:
-                metadata = models.UserMetadata(user_id)
-                db.session.add(metadata)
+                if not user_metadata:
+                    metadata = models.UserMetadata(user_id)
+                    db.session.add(metadata)
+                    db.session.commit()
+
+                # add comment
+                comment = models.WhatsUpComment(
+                    post_id=id,
+                    user_id=user_id,
+                    pub_date=datetime.datetime.utcnow(),
+                    body=form.body.data)
+
+                db.session.add(comment)
                 db.session.commit()
 
-            # add comment
-            comment = models.WhatsUpComment(
-                post_id=id,
-                user_id=user_id,
-                pub_date=datetime.datetime.utcnow(),
-                body=form.body.data)
+                # send mail to post owner
+                sender = ('{} {}'.format(unidecode(active_user['vorname']),
+                                         unidecode(active_user['name'])),
+                          active_user['email'])
 
-            db.session.add(comment)
-            db.session.commit()
+                recipients = [post.user.ct_data(ct_session).email]
 
-            flash('Kommentar abgeschickt!', 'success')
-            return redirect(url_for('whatsup_post', id=id))
+                body = '{} {} hat geschrieben:\n\n{}'.format(
+                    unidecode(active_user['vorname']),
+                    unidecode(active_user['name']), form.body.data)
 
-        except:
-            flash('Fehler aufgetreten!', 'danger')
-            return redirect(url_for('whatsup_post', id=id))
+                mailing.send_email('Kommentar in "{}"'.format(post.subject),
+                                   sender, recipients, body)
 
-    # ct_data needs a db session to access the ct database
-    with ct_connect.session_scope() as ct_session:
+                flash('Kommentar abgeschickt!', 'success')
+                return redirect(url_for('whatsup_post', id=id))
+
+            except:
+                flash('Fehler aufgetreten!', 'danger')
+                return redirect(url_for('whatsup_post', id=id))
+
         return render_template('whatsup_post.html',
                                post=post,
                                form=form,

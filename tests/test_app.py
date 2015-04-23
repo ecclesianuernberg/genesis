@@ -1401,68 +1401,86 @@ def test_whatsup_overview_new(client, test_user):
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_whatsup_post(client, test_user):
-    # add post
-    login(client, test_user['email'], test_user['password'])
-    add_whatsup_post(client, 'subject', 'body')
+    with app.app.app_context():
+        with app.mail.record_messages() as outbox:
+            # add post
+            login(client, test_user['email'], test_user['password'])
+            add_whatsup_post(client, 'subject', 'body')
 
-    # logout and try to access it
-    logout(client)
-    rv = client.get('/whatsup/1')
+            # logout and try to access it
+            logout(client)
+            rv = client.get('/whatsup/1')
 
-    assert rv.status_code == 302
+            assert rv.status_code == 302
 
-    # login again
-    login(client, test_user['email'], test_user['password'])
+            # login again
+            login(client, test_user['email'], test_user['password'])
 
-    # add comment
-    rv = add_whatsup_comment(client, 1, 'comment1')
+            # add comment
+            rv = add_whatsup_comment(client, 1, 'comment1')
 
-    assert rv.status_code == 200
-    assert 'Kommentar abgeschickt!' in rv.data
+            assert rv.status_code == 200
+            assert 'Kommentar abgeschickt!' in rv.data
 
-    # database entries
-    rv = app.models.get_whatsup_post(1)
+            # database entries
+            rv = app.models.get_whatsup_post(1)
 
-    assert rv.comments[0].body == 'comment1'
-    assert rv.comments[0].post_id == 1
-    assert rv.comments[0].user_id == test_user['id']
+            assert rv.comments[0].body == 'comment1'
+            assert rv.comments[0].post_id == 1
+            assert rv.comments[0].user_id == test_user['id']
 
-    # add 3 more comments
-    sleep(1)
-    add_whatsup_comment(client, 1, 'comment2')
-    sleep(1)
-    add_whatsup_comment(client, 1, 'comment3')
-    sleep(1)
-    add_whatsup_comment(client, 1, 'comment4')
+            # add 3 more comments
+            sleep(1)
+            add_whatsup_comment(client, 1, 'comment2')
+            sleep(1)
+            add_whatsup_comment(client, 1, 'comment3')
+            sleep(1)
+            add_whatsup_comment(client, 1, 'comment4')
 
-    assert len(app.models.get_whatsup_post(1).comments) == 4
+            assert len(app.models.get_whatsup_post(1).comments) == 4
 
-    # create soup
-    rv = client.get('/whatsup/1')
-    soup = BeautifulSoup(rv.data)
+            # create soup
+            rv = client.get('/whatsup/1')
+            soup = BeautifulSoup(rv.data)
 
-    rv = soup.find_all('div', class_='media-body')
+            rv = soup.find_all('div', class_='media-body')
 
-    # discussion icon counter
-    assert '4' in rv[0].text
+            # discussion icon counter
+            assert '4' in rv[0].text
 
-    # checking comment order
-    assert 'comment4' in rv[1].text
-    assert 'comment3' in rv[2].text
-    assert 'comment2' in rv[3].text
-    assert 'comment1' in rv[4].text
+            # checking comment order
+            assert 'comment4' in rv[1].text
+            assert 'comment3' in rv[2].text
+            assert 'comment2' in rv[3].text
+            assert 'comment1' in rv[4].text
 
-    # checking names
-    assert '{} {}'.format(test_user['vorname'],
-                          test_user['name']) in rv[0].text.encode('utf-8')
-    assert '{} {}'.format(test_user['vorname'],
-                          test_user['name']) in rv[1].text.encode('utf-8')
-    assert '{} {}'.format(test_user['vorname'],
-                          test_user['name']) in rv[2].text.encode('utf-8')
-    assert '{} {}'.format(test_user['vorname'],
-                          test_user['name']) in rv[3].text.encode('utf-8')
-    assert '{} {}'.format(test_user['vorname'],
-                          test_user['name']) in rv[4].text.encode('utf-8')
+            # checking names
+            assert '{} {}'.format(
+                test_user['vorname'],
+                test_user['name']) in rv[0].text.encode('utf-8')
+            assert '{} {}'.format(
+                test_user['vorname'],
+                test_user['name']) in rv[1].text.encode('utf-8')
+            assert '{} {}'.format(
+                test_user['vorname'],
+                test_user['name']) in rv[2].text.encode('utf-8')
+            assert '{} {}'.format(
+                test_user['vorname'],
+                test_user['name']) in rv[3].text.encode('utf-8')
+            assert '{} {}'.format(
+                test_user['vorname'],
+                test_user['name']) in rv[4].text.encode('utf-8')
+
+            # check notification emails
+            assert outbox[0].sender == '{} {} <{}>'.format(
+                unidecode(test_user['vorname'].decode('utf-8')),
+                unidecode(test_user['name'].decode('utf-8')),
+                test_user['email'])
+            assert outbox[0].subject == 'Kommentar in "{}"'.format('subject')
+            assert '{} {} hat geschrieben:'.format(
+                unidecode(test_user['vorname'].decode('utf-8')),
+                unidecode(test_user['name'].decode('utf-8'))) in outbox[0].body
+            assert 'comment1' in outbox[0].body
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

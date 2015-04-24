@@ -1,0 +1,29 @@
+# -*- coding: utf-8 -*-
+import os
+
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+class Config(object):
+    NAME = 'G E N E S I S'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or '{{ secret_key }}'
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    DEBUG = False
+    TESTING = False
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{{ mysql_genesis_user }}:{{ mysql_genesis_pass }}@{{ mysql_genesis_host }}/{{ mysql_genesis_db }}?charset=utf8'
+    SQLALCHEMY_CT_DATABASE_URI = 'mysql+pymysql://{{ mysql_ct_user }}:{{ mysql_ct_pass }}@{{ mysql_ct_host }}/{{ mysql_ct_db }}?charset=utf8'
+    HOST = '127.0.0.1'
+    UPLOAD_FOLDER = '{{ app_dir }}/app/static/uploaded_images'
+    WHOOSH_BASE = '{{ app_dir }}/whoosh_index'
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    HOST = '0.0.0.0'
+
+
+config = {
+    'development': DevelopmentConfig,
+    'default': Config
+}

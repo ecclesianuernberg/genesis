@@ -4,11 +4,11 @@
 
   vars:
     repo: https://github.com/ecclesianuernberg/genesis
-    app_dir: /srv/www/genesis
-    app_user: www-data
+
+  vars_files:
+    - vars.yml
 
   tasks:
-
   - name: force local testing before deployment
     local_action: command tox -r
 
@@ -32,8 +32,8 @@
          virtualenv_command=virtualenv
 
   - name: create config
-    copy: src=files/config.py
-          dest={{ app_dir }}/config.py
+    template: src=templates/config.py.j2
+              dest={{ app_dir }}/config.py
 
   - name: create log directory
     file: path=/var/log/genesis

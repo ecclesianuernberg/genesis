@@ -31,7 +31,7 @@
          virtualenv={{ app_dir }}/env
          virtualenv_command=virtualenv
 
-  - name: create config
+  - name: create genesis config
     template: src=templates/config.py.j2
               dest={{ app_dir }}/config.py
 
@@ -43,6 +43,8 @@
 
   - name: check wsgi module
     apache2_module: state=present name=wsgi
+    notify:
+      - restart apache2
 
   - name: create wsgi file
     template: src=templates/app.wsgi.j2
@@ -54,6 +56,10 @@
 
   - name: enable vhost
     command: a2ensite genesis
+    args:
+      creates: /etc/apache2/sites-enabled/genesis
+    notify:
+      - restart apache2
 
   - name: upgrade database
     command: env/bin/python manage.py db upgrade chdir={{ app_dir }}
@@ -66,6 +72,12 @@
           recurse=yes
           owner={{ app_user }}
           group={{ app_user }}
+    notify:
+      - reload apache2
 
-  - name: reload apache2
-    command: service apache2 reload
+  handlers:
+    - name: reload apache2
+      service: name=apache2 state=reloaded
+
+    - name: restart apache2
+      service: name=apache2 state=restarted

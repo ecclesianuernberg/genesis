@@ -1,0 +1,8 @@
+---
+- name: force local testing before deployment
+  local_action: command tox -r
+
+- name: install system packages
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - git

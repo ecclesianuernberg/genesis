@@ -1,0 +1,22 @@
+---
+- name: install packages
+  apt: pkg={{ item }} state=present
+  with_items:
+    - apache2
+    - libapache2-mod-wsgi
+
+- name: check wsgi module
+  apache2_module: state=present name=wsgi
+  notify:
+    - restart apache2
+
+- name: copy vhost
+  template: src=vhost.j2
+            dest=/etc/apache2/sites-available/genesis
+
+- name: enable vhost
+  command: a2ensite genesis
+  args:
+    creates: /etc/apache2/sites-enabled/genesis
+  notify:
+    - restart apache2

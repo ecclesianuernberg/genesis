@@ -57,7 +57,9 @@ pylint.out
 docs/_build/
 
 # OWNSTUFF
+.vagrant
 *.db
 app/static/uploaded_images/*.jpg
 config.py
 whoosh_index
+ansible/roles/churchtools/files/*.sql

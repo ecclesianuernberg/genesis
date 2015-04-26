@@ -1,0 +1,63 @@
+---
+- name: install packages
+  apt: pkg={{ item }} state=present
+  with_items:
+    - python-dev
+    - python-setuptools
+    - python-pip
+    - python-virtualenv
+    - libjpeg-dev
+
+- name: clone repo
+  git: repo=https://github.com/ecclesianuernberg/genesis
+       dest={{ app_dir }}
+       version=devel
+
+- name: virtualenv and install requirements
+  pip: requirements={{ app_dir }}/requirements.txt
+       virtualenv={{ app_dir }}/env
+       virtualenv_command=virtualenv
+
+- name: create config
+  template: src=config.py.j2
+            dest={{ app_dir }}/config.py
+
+- name: create log directory
+  file: path=/var/log/genesis
+        state=directory
+        owner={{ app_user }}
+        group={{ app_user }}
+
+- name: create wsgi file
+  template: src=app.wsgi.j2
+            dest={{ app_dir }}/app.wsgi
+
+- name: create db
+  mysql_db: name={{ mysql_genesis_db }}
+            login_host=localhost
+            login_user={{ mysql_user }}
+            login_password={{ mysql_pass }}
+            state=present
+
+- name: create db user
+  mysql_user: name={{ mysql_genesis_user }}
+              password={{ mysql_genesis_pass }}
+              login_host=localhost
+              login_user={{ mysql_user }}
+              login_password={{ mysql_pass }}
+              priv={{ mysql_genesis_db }}.*:ALL/{{ mysql_ct_db }}.*:ALL
+              state=present
+
+- name: upgrade db
+  command: env/bin/python manage.py db upgrade chdir={{ app_dir }}
+
+- name: rebuild whoosh index
+  command: env/bin/python manage.py whoosh_rebuild chdir={{ app_dir }}
+
+- name: chown dir
+  file: path={{ app_dir }}
+        recurse=yes
+        owner={{ app_user }}
+        group={{ app_user }}
+  notify:
+    - reload apache2

@@ -1,0 +1,11 @@
+---
+- hosts: all
+
+  vars_files:
+    - group_vars/vagrant.yml
+
+  roles:
+    - common
+    - mysql
+    - churchtools
+    - genesis_devel

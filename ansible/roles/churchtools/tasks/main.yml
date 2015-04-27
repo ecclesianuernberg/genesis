@@ -1,0 +1,18 @@
+---
+- name: create churchtools db
+  mysql_db: name={{ mysql_ct_db }}
+            login_host=localhost
+            login_user={{ mysql_user }}
+            login_password={{ mysql_pass }}
+            state=present
+
+- name: sync churchtools db repo
+  command: rsync -av --delete remotebkp@192.168.39.115:/home/remotebkp/ecclesianuernberg/db-shallow/ /tmp/ct
+
+- name: import ct dump
+  mysql_db: name={{ mysql_ct_db }}
+            login_host=localhost
+            login_user={{ mysql_user }}
+            login_password={{ mysql_pass }}
+            state=import
+            target=/tmp/ct/db378317525.sql

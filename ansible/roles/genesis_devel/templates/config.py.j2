@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+import os
+
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+class Config(object):
+    NAME = 'G E N E S I S'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or '{{ secret_key }}'
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    DEBUG = False
+    TESTING = False
+    SQLALCHEMY_CT_DATABASE_URI = 'mysql+pymysql://{{ mysql_ct_user }}:{{ mysql_ct_pass }}@{{ mysql_ct_host }}/{{ mysql_ct_db }}?charset=utf8'
+    HOST = '127.0.0.1'
+    UPLOAD_FOLDER = '{{ app_dir }}/app/static/uploaded_images'
+    WHOOSH_BASE = '{{ app_dir }}/whoosh_index'
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    HOST = '0.0.0.0'
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{{ mysql_genesis_user }}:{{ mysql_genesis_pass }}@{{ mysql_genesis_host }}/{{ mysql_genesis_db_devel }}?charset=utf8'
+
+
+class TestingConfig(Config):
+    TESTING = True
+    LOGIN_DISABLED = False
+    WTF_CSRF_ENABLED = False
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{{ mysql_genesis_user }}:{{ mysql_genesis_pass}}@{{ mysql_genesis_host }}/{{ mysql_genesis_db_testing }}?charset=utf8'
+    TEST_USER = [{
+        'email': {{ test_user_1_email }},
+        'password': {{ test_user_1_pass }},
+        'id': {{ test_user_1_id }},
+        'vorname': {{ test_user_1_vorname }},
+        'name': {{ test_user_1_name }}'
+    }, {
+        'email': {{ test_user_2_email }},
+        'password': {{ test_user_2_pass }},
+        'id': {{ test_user_2_id }},
+        'vorname': {{ test_user_2_vorname }},
+        'name': {{ test_user_2_name }}'
+    }, {
+        'email': {{ test_user_3_email }},
+        'password': {{ test_user_3_pass }},
+        'id': {{ test_user_3_id }},
+        'vorname': {{ test_user_3_vorname }},
+        'name': {{ test_user_3_name }}'
+    }]
+
+
+config = {
+    'development': DevelopmentConfig,
+    'testing': TestingConfig,
+    'default': DevelopmentConfig
+}

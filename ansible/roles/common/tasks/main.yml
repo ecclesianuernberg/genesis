@@ -1,6 +1,6 @@
 ---
-- name: force local testing before deployment
-  local_action: command tox -r
+#- name: force local testing before deployment
+#  local_action: command tox -r
 
 - name: install system packages
   apt: pkg={{ item }} state=latest update_cache=yes

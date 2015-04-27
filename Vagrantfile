@@ -65,18 +65,26 @@ Vagrant.configure(2) do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
-    sudo debconf-set-selections <<< 'mysql-server-5.5 mysql-server/root_password password churchtools'
-    sudo debconf-set-selections <<< 'mysql-server-5.5 mysql-server/root_password_again password churchtools'
-    sudo apt-get install language-pack-de
-    sudo locale-gen de_DE.UTF-8
-    sudo apt-get update
-    sudo apt-get install -y curl
-    sudo apt-get install -y mysql-server
-    sudo apt-get install -y python-dev
-    sudo apt-get install -y libjpeg-dev
-    mysql -uroot -pchurchtools -e "create database churchtools;"
-    mysql -uroot -pchurchtools -e "create database genesis_devel;"
-    mysql -uroot -pchurchtools -e "create database genesis_testing;"
-  SHELL
+  #config.vm.provision "shell", inline: <<-SHELL
+  #  sudo debconf-set-selections <<< 'mysql-server-5.5 mysql-server/root_password password churchtools'
+  #  sudo debconf-set-selections <<< 'mysql-server-5.5 mysql-server/root_password_again password churchtools'
+  #  sudo apt-get install language-pack-de
+  #  sudo locale-gen de_DE.UTF-8
+  #  sudo apt-get update
+  #  sudo apt-get install -y curl
+  #  sudo apt-get install -y mysql-server
+  #  sudo apt-get install -y python-dev
+  #  sudo apt-get install -y libjpeg-dev
+  #  mysql -uroot -pchurchtools -e "create database churchtools;"
+  #  mysql -uroot -pchurchtools -e "create database genesis_devel;"
+  #  mysql -uroot -pchurchtools -e "create database genesis_testing;"
+  #SHELL
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "ansible/vagrant.yml"
+    ansible.limit = "all"
+    ansible.verbose = "v"
+    ansible.ask_vault_pass = true
+  end
+
 end

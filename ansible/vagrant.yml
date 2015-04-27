@@ -1,0 +1,12 @@
+---
+- hosts: all
+  sudo: true
+
+  vars_files:
+    - group_vars/vagrant
+
+  roles:
+    - common
+    - mysql
+    - churchtools
+    - genesis_devel

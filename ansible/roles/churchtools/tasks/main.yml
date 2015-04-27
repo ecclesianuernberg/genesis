@@ -1,0 +1,18 @@
+---
+- name: create churchtools db
+  mysql_db: name={{ mysql_ct_db }}
+            login_host=localhost
+            login_user={{ mysql_user }}
+            login_password={{ mysql_pass }}
+            state=present
+
+- name: cp churchtools dump
+  copy: src=db378317525.sql dest=/tmp
+
+- name: import churchtools dump
+  mysql_db: name={{ mysql_ct_db }}
+            login_host=localhost
+            login_user={{ mysql_user }}
+            login_password={{ mysql_pass }}
+            state=import
+            target=/tmp/db378317525.sql

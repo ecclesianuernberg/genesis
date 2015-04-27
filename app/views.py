@@ -717,9 +717,10 @@ def whatsup_post(id):
 
                 recipients = [post.user.ct_data(ct_session).email]
 
-                body = '{} {} hat geschrieben:\n\n{}'.format(
+                body = '{} {} hat geschrieben:\n\n{}\n\n{}'.format(
                     unidecode(active_user['vorname']),
-                    unidecode(active_user['name']), form.body.data)
+                    unidecode(active_user['name']), form.body.data,
+                    make_external('/whatsup/{}'.format(id)))
 
                 mailing.send_email('Kommentar in "{}"'.format(post.subject),
                                    sender, recipients, body)

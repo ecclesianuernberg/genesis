@@ -1481,6 +1481,7 @@ def test_whatsup_post(client, test_user):
                 unidecode(test_user['vorname'].decode('utf-8')),
                 unidecode(test_user['name'].decode('utf-8'))) in outbox[0].body
             assert 'comment1' in outbox[0].body
+            assert '/whatsup/1' in outbox[0].body
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)

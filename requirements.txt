@@ -19,7 +19,7 @@ Mako==1.0.0
 MarkupSafe==0.23
 Pillow==2.8.0
 PyMySQL==0.6.2
-SQLAlchemy==0.9.7
+SQLAlchemy==1.0.2
 Unidecode==0.04.16
 WTForms==2.0.1
 Werkzeug==0.9.6

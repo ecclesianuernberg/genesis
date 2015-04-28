@@ -71,7 +71,7 @@ class AddPrayerForm(Form):
         '',
         validators=[validators.DataRequired(), validators.Length(max=700)])
 
-    show_user = BooleanField('Name anzeigen')
+    name = StringField('Name', validators=[validators.Length(max=120)])
 
     active = BooleanField('Aktiv')
 

@@ -316,16 +316,9 @@ def group(id):
 @login_required
 def prayer():
     ''' show random prayer '''
-    with ct_connect.session_scope() as ct_session:
-        random_prayer = models.get_random_prayer()
-        if random_prayer is not None:
-            user = ct_connect.get_person_from_id(ct_session,
-                                                 random_prayer.user_id)[0]
-        else:
-            user = None
-        return render_template('prayer.html',
-                               random_prayer=random_prayer,
-                               user=user)
+    random_prayer = models.get_random_prayer()
+
+    return render_template('prayer.html', random_prayer=random_prayer)
 
 
 @app.route('/prayer/add', methods=['GET', 'POST'])
@@ -342,7 +335,7 @@ def prayer_add():
             db.session.commit()
 
         prayer = models.Prayer(user_id=auth.active_user()['id'],
-                               show_user=form.show_user.data,
+                               name=form.name.data,
                                active=form.active.data,
                                pub_date=datetime.datetime.utcnow(),
                                body=form.body.data)
@@ -367,7 +360,7 @@ def prayer_mine():
     for prayer in prayers:
         edit_forms[prayer.id] = forms.AddPrayerForm(prefix=str(prayer.id),
                                                     body=prayer.body,
-                                                    show_user=prayer.show_user,
+                                                    name=prayer.name,
                                                     active=prayer.active)
 
     if request.method == 'POST':
@@ -383,7 +376,7 @@ def prayer_mine():
                 prayer = models.get_prayer(prayer_id)
 
                 prayer.body = edit_prayer_form.body.data
-                prayer.show_user = edit_prayer_form.show_user.data
+                prayer.name = edit_prayer_form.name.data
                 prayer.active = edit_prayer_form.active.data
 
                 db.session.commit()

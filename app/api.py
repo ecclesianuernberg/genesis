@@ -47,7 +47,7 @@ class PrayerAPI(Resource):
                                    required=True,
                                    location='json')
         self.reqparse.add_argument('active', type=bool, location='json')
-        self.reqparse.add_argument('show_user', type=bool, location='json')
+        self.reqparse.add_argument('name', type=str, location='json')
 
         super(PrayerAPI, self).__init__()
 
@@ -55,13 +55,9 @@ class PrayerAPI(Resource):
     @marshal_with(create_prayer_fields('prayerapi'))
     def get(self):
         prayer = get_random_prayer()
-        if prayer.show_user:
-            name = get_users_name(prayer.user)
-        else:
-            name = 'anonym'
 
         return PrayerObject(prayer=prayer.body,
-                            name=name,
+                            name=prayer.name,
                             id=prayer.id,
                             pub_date=prayer.pub_date)
 
@@ -79,7 +75,7 @@ class PrayerAPI(Resource):
             db.session.commit()
 
         prayer = models.Prayer(user_id=g.user['id'],
-                               show_user=args['show_user'],
+                               name=args['name'],
                                active=True,
                                pub_date=datetime.utcnow(),
                                body=args['body'])
@@ -87,13 +83,8 @@ class PrayerAPI(Resource):
         db.session.add(prayer)
         db.session.commit()
 
-        if prayer.show_user:
-            name = get_users_name(prayer.user)
-        else:
-            name = 'anonym'
-
         return PrayerObject(prayer=prayer.body,
-                            name=name,
+                            name=prayer.name,
                             id=prayer.id,
                             pub_date=prayer.pub_date)
 
@@ -103,7 +94,7 @@ class PrayerAPIEdit(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('body', type=str, location='json')
         self.reqparse.add_argument('active', type=bool, location='json')
-        self.reqparse.add_argument('show_user', type=bool, location='json')
+        self.reqparse.add_argument('name', type=str, location='json')
 
         super(PrayerAPIEdit, self).__init__()
 
@@ -121,18 +112,13 @@ class PrayerAPIEdit(Resource):
         if args['active'] is not None:
             value = args['active']
             prayer.active = value
-        if args['show_user'] is not None:
-            prayer.show_user = args['show_user']
+        if args['name'] is not None:
+            prayer.name = args['name']
 
         db.session.commit()
 
-        if prayer.show_user:
-            name = get_users_name(prayer.user)
-        else:
-            name = 'anonym'
-
         return PrayerObject(prayer=prayer.body,
-                            name=name,
+                            name=prayer.name,
                             id=prayer.id,
                             pub_date=prayer.pub_date)
 

@@ -231,49 +231,34 @@ def logout(client):
     return client.get('/logout', follow_redirects=True)
 
 
-def add_prayer(client, body):
+def add_prayer(client, body, name=''):
     ''' helper to add a new prayer '''
     return client.post('/prayer/add',
                        data={'body': body,
                              'active': True,
-                             'show_user': True},
+                             'name': name},
                        follow_redirects=True)
 
 
-def edit_prayer(client, id, body, active=False, show_user=False):
+def edit_prayer(client, id, body, active=False, name=''):
     ''' helper to edit a prayer '''
     # i discovered some strange behaviour or it was just my head that got
     # twisted. just sending body data it means that the booleanfields are
     # not toggled at all. i could send something like "active: True" or even
     # "active: 'foo" to get a booleanfield data sent to the form. and now
     # even more bizarr: you can send "active: False" and it returns in a True.
-    if active and show_user:
-        return client.post('/prayer/mine',
-                           data={
-                               '{}-body'.format(id): body,
-                               '{}-active'.format(id): True,
-                               '{}-show_user'.format(id): True
-                           },
-                           follow_redirects=True)
-
-    elif active:
+    if active:
         return client.post(
             '/prayer/mine',
             data={'{}-body'.format(id): body,
-                  '{}-active'.format(id): True},
-            follow_redirects=True)
-
-    elif show_user:
-        return client.post(
-            '/prayer/mine',
-            data=
-            {'{}-body'.format(id): body,
-             '{}-show_user'.format(id): True},
+                  '{}-active'.format(id): True,
+                  '{}-name'.format(id): name},
             follow_redirects=True)
 
     else:
         return client.post('/prayer/mine',
-                           data={'{}-body'.format(id): body},
+                           data={'{}-body'.format(id): body,
+                                 '{}-name'.format(id): name},
                            follow_redirects=True)
 
 
@@ -309,16 +294,17 @@ def get_api_token(client, creds):
                       content_type='application/json')
 
 
-def add_prayer_api(client, body, creds):
+def add_prayer_api(client, body, creds, name=''):
     ''' helper to add a new prayer '''
     return client.post('/api/prayer',
                        headers={'Authorization': 'Basic ' + creds},
                        data=json.dumps({'body': body,
-                                        'active': True}),
+                                        'active': True,
+                                        'name': name}),
                        content_type='application/json')
 
 
-def edit_prayer_api(client, id, body, creds, active, show_user):
+def edit_prayer_api(client, id, body, creds, active, name=''):
     ''' helper to add a new prayer '''
     return client.put(
         '/api/prayer/{}'.format(id),
@@ -326,7 +312,7 @@ def edit_prayer_api(client, id, body, creds, active, show_user):
         data=json.dumps(
             {'body': body,
              'active': active,
-             'show_user': show_user}),
+             'name': name}),
         content_type='application/json')
 
 
@@ -594,18 +580,18 @@ def test_random_prayer(client):
     ''' random prayer view '''
     test_user = TEST_USER[1]
     prayer = 'Dies ist ein Test!'
+    name = 'Testname'
 
     login(client, test_user['email'], test_user['password'])
-    add_prayer(client, prayer)
+    add_prayer(client, prayer, name)
 
     # prayer with show_user
     rv = client.get('/prayer')
     soup = BeautifulSoup(rv.data)
 
-    assert '{} {}'.format(test_user['vorname'],
-                          test_user['name']) == soup.find_all(
-                              'div',
-                              class_='panel-heading')[0].text
+    assert '{}'.format(name) == soup.find_all(
+        'div',
+        class_='panel-heading')[0].text
 
     # prayer body
     assert prayer in soup.find_all('div', class_='panel-body')[0].text
@@ -624,7 +610,7 @@ def test_add_prayer(client, test_user):
     login(client, test_user['email'], test_user['password'])
 
     prayer = 'Test-Anliegen'
-    rv = add_prayer(client, prayer)
+    rv = add_prayer(client, prayer, 'Testname')
 
     assert rv.status_code == 200
     assert 'Gebetsanliegen abgeschickt!' in rv.data
@@ -635,7 +621,7 @@ def test_add_prayer(client, test_user):
 
     assert db_entry.body == prayer
     assert db_entry.active is True
-    assert db_entry.show_user is True
+    assert db_entry.name == 'Testname'
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -645,10 +631,11 @@ def test_edit_prayer(client, test_user):
 
     # add prayer
     prayer = 'Test-Anliegen'
+    name = 'Testname'
     rv = add_prayer(client, prayer)
 
     prayer = 'Neues Anliegen'
-    rv = edit_prayer(client, 1, prayer)
+    rv = edit_prayer(client, 1, prayer, name=name)
 
     assert rv.status_code == 200
     assert 'Gebetsanliegen veraendert!' in rv.data
@@ -659,7 +646,7 @@ def test_edit_prayer(client, test_user):
 
     assert db_entry.body == prayer
     assert db_entry.active is False
-    assert db_entry.show_user is False
+    assert db_entry.name == name
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -843,30 +830,32 @@ def test_api_add_prayer(client, test_user):
     ''' add prayer through api '''
     creds = create_api_creds(test_user['email'], test_user['password'])
     body = 'Test'
-    rv = add_prayer_api(client, body, creds)
+    name = 'Testname'
+
+    rv = add_prayer_api(client, body, creds, name)
 
     assert rv.status_code == 200
 
     # create dict out of json response
     data_dict = json.loads(rv.data)
 
-    assert data_dict.get('name') == 'anonym'
+    assert data_dict.get('name') == name
     assert data_dict.get('id') == 1
     assert data_dict.get('prayer') == 'Test'
 
     # wrong password
     creds = create_api_creds(test_user['email'], 'wrongpassword')
-    body = 'Test'
-    rv = add_prayer_api(client, body, creds)
+    rv = add_prayer_api(client, body, creds, name)
 
     assert rv.status_code == 401
 
     # check db entry
     db_entry = app.models.get_prayer(1)
     assert db_entry.id == 1
-    assert db_entry.body == 'Test'
+    assert db_entry.body == body
     assert db_entry.user_id == test_user['id']
     assert db_entry.active is True
+    assert db_entry.name == name
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -887,7 +876,7 @@ def test_api_add_prayer_token(client, test_user):
     # create dict out of json response
     data_dict = json.loads(rv.data)
 
-    assert data_dict.get('name') == 'anonym'
+    assert data_dict.get('name') == ''
     assert data_dict.get('id') == 1
     assert data_dict.get('prayer') == 'Test'
 
@@ -905,27 +894,27 @@ def test_api_edit_prayer(client, test_user):
     creds = create_api_creds(test_user['email'], test_user['password'])
     body = 'Noch ein Test'
     active = True
-    show_user = False
+    name = 'Testname'
 
     # add prayer
     add_prayer_api(client, 'Test', creds)
 
     # edit prayer
-    rv = edit_prayer_api(client, 1, body, creds, active, show_user)
+    rv = edit_prayer_api(client, 1, body, creds, active, name)
 
     assert rv.status_code == 200
 
     # create dict out of json response
     data_dict = json.loads(rv.data)
 
-    assert data_dict.get('name') == 'anonym'
+    assert data_dict.get('name') == name
     assert data_dict.get('id') == 1
     assert data_dict.get('prayer') == 'Noch ein Test'
 
     # wrong password
     creds = create_api_creds(test_user['email'], 'wrongpassword')
     body = 'Test'
-    rv = edit_prayer_api(client, 1, body, creds, active, show_user)
+    rv = edit_prayer_api(client, 1, body, creds, active, name)
 
     assert rv.status_code == 401
 
@@ -1473,9 +1462,8 @@ def test_whatsup_post(client, test_user):
 
             # check notification emails
             assert outbox[0].sender == '{} {} <{}>'.format(
-                unidecode(test_user['vorname'].decode('utf-8')),
-                unidecode(test_user['name'].decode('utf-8')),
-                test_user['email'])
+                unidecode(test_user['vorname'].decode('utf-8')), unidecode(
+                    test_user['name'].decode('utf-8')), test_user['email'])
             assert outbox[0].subject == 'Kommentar in "{}"'.format('subject')
             assert '{} {} hat geschrieben:'.format(
                 unidecode(test_user['vorname'].decode('utf-8')),

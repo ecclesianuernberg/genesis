@@ -121,14 +121,14 @@ class Prayer(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
-    show_user = db.Column(db.Boolean())
+    name = db.Column(db.String(120))
     active = db.Column(db.Boolean())
     pub_date = db.Column(db.DateTime())
     body = db.Column(db.String(700))
 
-    def __init__(self, user_id, show_user, active, pub_date, body):
+    def __init__(self, user_id, name, active, pub_date, body):
         self.user_id = user_id
-        self.show_user = show_user
+        self.name = name
         self.active = active
         self.pub_date = pub_date
         self.body = body

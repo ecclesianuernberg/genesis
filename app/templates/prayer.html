@@ -15,8 +15,8 @@
 	<h1><small>f&uuml;r</small> Anliegen <small>beten</small></h1>
   {% if random_prayer is not none %}
 	<div class="panel panel-default">
-		{% if random_prayer.show_user %}
-		<div class="panel-heading">{{ user.vorname }} {{ user.name }}</div>
+		{% if random_prayer.name %}
+		<div class="panel-heading">{{ random_prayer.name }}</div>
 		{% else %}
 		<div class="panel-heading"></div>
 		{% endif %}

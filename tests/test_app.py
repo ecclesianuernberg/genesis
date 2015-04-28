@@ -1417,7 +1417,7 @@ def test_whatsup_post(client, test_user):
             login(client, test_user['email'], test_user['password'])
 
             # add comment
-            rv = add_whatsup_comment(client, 1, 'comment1')
+            rv = add_whatsup_comment(client, 1, 'cömment1')
 
             assert rv.status_code == 200
             assert 'Kommentar abgeschickt!' in rv.data
@@ -1425,7 +1425,7 @@ def test_whatsup_post(client, test_user):
             # database entries
             rv = app.models.get_whatsup_post(1)
 
-            assert rv.comments[0].body == 'comment1'
+            assert rv.comments[0].body == 'cömment1'.decode('utf-8')
             assert rv.comments[0].post_id == 1
             assert rv.comments[0].user_id == test_user['id']
 
@@ -1452,7 +1452,7 @@ def test_whatsup_post(client, test_user):
             assert 'comment4' in rv[1].text
             assert 'comment3' in rv[2].text
             assert 'comment2' in rv[3].text
-            assert 'comment1' in rv[4].text
+            assert 'cömment1'.decode('utf-8') in rv[4].text
 
             # checking names
             assert '{} {}'.format(
@@ -1480,7 +1480,7 @@ def test_whatsup_post(client, test_user):
             assert '{} {} hat geschrieben:'.format(
                 unidecode(test_user['vorname'].decode('utf-8')),
                 unidecode(test_user['name'].decode('utf-8'))) in outbox[0].body
-            assert 'comment1' in outbox[0].body
+            assert 'cömment1'.decode('utf-8') in outbox[0].body
             assert '/whatsup/1' in outbox[0].body
 
 

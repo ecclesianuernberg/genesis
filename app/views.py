@@ -719,8 +719,9 @@ def whatsup_post(id):
 
                 body = '{} {} hat geschrieben:\n\n{}\n\n{}'.format(
                     unidecode(active_user['vorname']),
-                    unidecode(active_user['name']), form.body.data,
-                    make_external('/whatsup/{}'.format(id)))
+                    unidecode(active_user['name']),
+                    form.body.data.encode('utf-8'),
+                    make_external('/whatsup/{}'.format(id))).decode('utf-8')
 
                 mailing.send_email('Kommentar in "{}"'.format(post.subject),
                                    sender, recipients, body)

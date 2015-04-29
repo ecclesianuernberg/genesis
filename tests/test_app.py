@@ -1175,15 +1175,15 @@ def test_save_image(client, image):
 def test_admin_access_logged_in(client, test_user, status_code):
     login(client, test_user['email'], test_user['password'])
 
-    for view in ['newsview', 'groupmetadataview', 'usermetadataview',
-                 'imageview', 'prayerview']:
+    for view in ['news', 'groupmetadata', 'usermetadata',
+                 'image', 'prayer']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == status_code
 
 
 def test_admin_access_logged_out(client):
-    for view in ['newsview', 'groupmetadataview', 'usermetadataview',
-                 'imageview', 'prayerview']:
+    for view in ['news', 'groupmetadata', 'usermetadata',
+                 'image', 'prayer']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == 403
 

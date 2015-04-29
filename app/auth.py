@@ -7,23 +7,6 @@ from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
 from passlib.hash import bcrypt
 
 
-def persons(user):
-    ''' create a dict with all person data that matches
-    the logged in email adress. '''
-    person_list = []
-    for person in user:
-        person_list.append({
-            'email': person.email,
-            'password': person.password,
-            'id': person.id,
-            'vorname': person.vorname,
-            'name': person.name,
-            'active': False
-        })
-
-    return person_list
-
-
 class CTUser(UserMixin):
     def __init__(self, uid=None, password=None, active=True):
         self.id = uid
@@ -35,13 +18,30 @@ class CTUser(UserMixin):
                 user = ct_connect.get_person(ct_session, self.id)
 
                 if user:
-                    self.persons = persons(user)
+                    self.persons = self.get_persons(user)
                     return self
                 else:
                     return None
 
         except:
             return None
+
+    @staticmethod
+    def get_persons(user):
+        ''' create a dict with all person data that matches
+        the logged in email adress. '''
+        person_list = []
+        for person in user:
+            person_list.append({
+                'email': person.email,
+                'password': person.password,
+                'id': person.id,
+                'vorname': person.vorname,
+                'name': person.name,
+                'active': False
+            })
+
+        return person_list
 
     @staticmethod
     def verify_auth_token(token):

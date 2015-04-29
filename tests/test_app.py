@@ -939,7 +939,7 @@ def test_persons():
     with ct_connect.session_scope() as ct_session:
         test_user = app.app.config['TEST_USER'][1]
         user = ct_connect.get_person(ct_session, test_user['email'])
-        persons = auth.persons(user)
+        persons = auth.CTUser.get_persons(user)
         assert persons[0]['email'] == test_user['email']
         assert persons[0]['id'] == test_user['id']
         assert persons[0]['vorname'] == test_user['vorname']

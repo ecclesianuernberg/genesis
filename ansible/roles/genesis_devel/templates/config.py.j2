@@ -1,8 +1,20 @@
 # -*- coding: utf-8 -*-
+from subprocess import Popen, PIPE
 import os
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+def get_git_hash():
+    try:
+        (stdout, stderr) = Popen(['git', 'rev-parse', 'HEAD'],
+                                 stdout=PIPE,
+                                 cwd='{{ app_dir }}').communicate()
+        return stdout.rstrip()
+
+    except:
+        return None
 
 
 class Config(object):
@@ -15,6 +27,7 @@ class Config(object):
     HOST = '127.0.0.1'
     UPLOAD_FOLDER = '{{ app_dir }}/app/static/uploaded_images'
     WHOOSH_BASE = '{{ app_dir }}/whoosh_index'
+    GIT_HASH = get_git_hash()
 
 
 class DevelopmentConfig(Config):

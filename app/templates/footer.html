@@ -2,4 +2,5 @@
 		<hr />
 		<p class="text-center">Impressum - Sitemap - Facebook - Twitter - {% if current_user.is_authenticated() %} <a href="{{ url_for('logout') }}">Logout</a> {% else %}<a href="{{ url_for('login') }}">Login</a>{% endif %}</p>
 		<p class="text-center">Bund kirchlicher Pfingstgemeinden (BFP) Ecclesia Verband - Copyright 2014 Ecclesia Nürnberg</p>
+		{% if config['GIT_HASH'] %}<p class="text-center"><small>{{ config['GIT_HASH'] }}</small></p>{% endif %}
 	</div>

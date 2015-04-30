@@ -20,6 +20,7 @@ def get_git_hash():
 class Config(object):
     NAME = 'G E N E S I S'
     SECRET_KEY = os.environ.get('SECRET_KEY') or '{{ secret_key }}'
+    FEED_SALT = '{{ feed_salt }}'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     DEBUG = False
     TESTING = False

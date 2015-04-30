@@ -248,18 +248,20 @@ def edit_prayer(client, id, body, active=False, name=''):
     # "active: 'foo" to get a booleanfield data sent to the form. and now
     # even more bizarr: you can send "active: False" and it returns in a True.
     if active:
+        return client.post('/prayer/mine',
+                           data={
+                               '{}-body'.format(id): body,
+                               '{}-active'.format(id): True,
+                               '{}-name'.format(id): name
+                           },
+                           follow_redirects=True)
+
+    else:
         return client.post(
             '/prayer/mine',
             data={'{}-body'.format(id): body,
-                  '{}-active'.format(id): True,
                   '{}-name'.format(id): name},
             follow_redirects=True)
-
-    else:
-        return client.post('/prayer/mine',
-                           data={'{}-body'.format(id): body,
-                                 '{}-name'.format(id): name},
-                           follow_redirects=True)
 
 
 def del_prayer(client, id):
@@ -296,12 +298,13 @@ def get_api_token(client, creds):
 
 def add_prayer_api(client, body, creds, name=''):
     ''' helper to add a new prayer '''
-    return client.post('/api/prayer',
-                       headers={'Authorization': 'Basic ' + creds},
-                       data=json.dumps({'body': body,
-                                        'active': True,
-                                        'name': name}),
-                       content_type='application/json')
+    return client.post(
+        '/api/prayer',
+        headers={'Authorization': 'Basic ' + creds},
+        data=json.dumps({'body': body,
+                         'active': True,
+                         'name': name}),
+        content_type='application/json')
 
 
 def edit_prayer_api(client, id, body, creds, active, name=''):
@@ -309,10 +312,9 @@ def edit_prayer_api(client, id, body, creds, active, name=''):
     return client.put(
         '/api/prayer/{}'.format(id),
         headers={'Authorization': 'Basic ' + creds},
-        data=json.dumps(
-            {'body': body,
-             'active': active,
-             'name': name}),
+        data=json.dumps({'body': body,
+                         'active': active,
+                         'name': name}),
         content_type='application/json')
 
 
@@ -373,16 +375,12 @@ def edit_whatsup_post(client, id, subject, body):
         follow_redirects=True)
 
 
-def get_whatsup_feed_posts(client, creds):
-    return client.get('/feeds/whatsup.atom',
-                      headers={'Authorization': 'Basic ' + creds},
-                      content_type='application/json')
+def get_whatsup_feed_posts(client, token):
+    return client.get('/feeds/whatsup.atom?token={}'.format(token))
 
 
-def get_whatsup_feed_comments(client, creds):
-    return client.get('/feeds/whatsup-comments.atom',
-                      headers={'Authorization': 'Basic ' + creds},
-                      content_type='application/json')
+def get_whatsup_feed_comments(client, token):
+    return client.get('/feeds/whatsup-comments.atom?token={}'.format(token))
 
 
 def edit_index(client, image, first_row_link, second_row_link,
@@ -589,9 +587,8 @@ def test_random_prayer(client):
     rv = client.get('/prayer')
     soup = BeautifulSoup(rv.data)
 
-    assert '{}'.format(name) == soup.find_all(
-        'div',
-        class_='panel-heading')[0].text
+    assert '{}'.format(name) == soup.find_all('div',
+                                              class_='panel-heading')[0].text
 
     # prayer body
     assert prayer in soup.find_all('div', class_='panel-body')[0].text
@@ -1175,15 +1172,13 @@ def test_save_image(client, image):
 def test_admin_access_logged_in(client, test_user, status_code):
     login(client, test_user['email'], test_user['password'])
 
-    for view in ['news', 'groupmetadata', 'usermetadata',
-                 'image', 'prayer']:
+    for view in ['news', 'groupmetadata', 'usermetadata', 'image', 'prayer']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == status_code
 
 
 def test_admin_access_logged_out(client):
-    for view in ['news', 'groupmetadata', 'usermetadata',
-                 'image', 'prayer']:
+    for view in ['news', 'groupmetadata', 'usermetadata', 'image', 'prayer']:
         rv = client.get('/admin/{}/'.format(view))
         assert rv.status_code == 403
 
@@ -1529,11 +1524,11 @@ def test_whatsup_feed_posts(client, test_user):
     rv = client.get('/feeds/whatsup.atom')
 
     # not allowed
-    assert rv.status_code == 401
+    assert rv.status_code == 403
 
     # logged in
-    creds = create_api_creds(test_user['email'], test_user['password'])
-    rv = get_whatsup_feed_posts(client, creds)
+    token = auth.generate_feed_auth(test_user)
+    rv = get_whatsup_feed_posts(client, token)
 
     assert rv.status_code == 200
 
@@ -1552,6 +1547,12 @@ def test_whatsup_feed_posts(client, test_user):
         unidecode(test_user['vorname'].decode('utf-8')),
         unidecode(test_user['name'].decode('utf-8')))
 
+    # wrong token
+    token = 'foobar'
+    rv = get_whatsup_feed_posts(client, token)
+
+    assert rv.status_code == 403
+
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_whatsup_feed_comments(client, test_user):
@@ -1568,11 +1569,11 @@ def test_whatsup_feed_comments(client, test_user):
     rv = client.get('/feeds/whatsup-comments.atom')
 
     # not allowed
-    assert rv.status_code == 401
+    assert rv.status_code == 403
 
     # logged in
-    creds = create_api_creds(test_user['email'], test_user['password'])
-    rv = get_whatsup_feed_comments(client, creds)
+    token = auth.generate_feed_auth(test_user)
+    rv = get_whatsup_feed_comments(client, token)
 
     assert rv.status_code == 200
 
@@ -1591,6 +1592,43 @@ def test_whatsup_feed_comments(client, test_user):
     assert rv.entries[1].author == '{} {}'.format(
         unidecode(test_user['vorname'].decode('utf-8')),
         unidecode(test_user['name'].decode('utf-8')))
+
+    # wrong token
+    token = 'foobar'
+    rv = get_whatsup_feed_comments(client, token)
+
+    assert rv.status_code == 403
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_whatsup_feed_links(test_user, client):
+    # prepare everything
+    login(client, test_user['email'], test_user['password'])
+    token = auth.generate_feed_auth(test_user)
+
+    # overview
+    rv = client.get('/whatsup')
+
+    soup = BeautifulSoup(rv.data)
+    feed_links = [i['href'] for i in soup.find_all('link')
+                  if 'feed' in i['href']]
+
+    assert len(feed_links) == 2
+    assert feed_links[0] == '/feeds/whatsup.atom?token={}'.format(token)
+    assert feed_links[1] == '/feeds/whatsup-comments.atom?token={}'.format(
+        token)
+
+    # new
+    rv = client.get('/whatsup/new')
+
+    soup = BeautifulSoup(rv.data)
+    feed_links = [i['href'] for i in soup.find_all('link')
+                  if 'feed' in i['href']]
+
+    assert len(feed_links) == 2
+    assert feed_links[0] == '/feeds/whatsup.atom?token={}'.format(token)
+    assert feed_links[1] == '/feeds/whatsup-comments.atom?token={}'.format(
+        token)
 
 
 def test_edit_index(client, image):

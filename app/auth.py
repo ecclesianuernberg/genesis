@@ -3,7 +3,7 @@ from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
-                          SignatureExpired, BadSignature)
+                          SignatureExpired, BadSignature, URLSafeSerializer)
 from passlib.hash import bcrypt
 
 
@@ -150,3 +150,18 @@ def own_profile_or_403(user_id):
 def active_user():
     ''' return the active user out of user session '''
     return [user for user in session['user'] if user['active']][0]
+
+
+def generate_feed_auth(user):
+    s = URLSafeSerializer(app.config['SECRET_KEY'],
+                          salt=app.config['FEED_SALT'])
+    return s.dumps({'id': user['email']})
+
+
+def feed_auth_or_403(token):
+    s = URLSafeSerializer(app.config['SECRET_KEY'],
+                          salt=app.config['FEED_SALT'])
+    try:
+        s.loads(token)
+    except:
+        abort(403)

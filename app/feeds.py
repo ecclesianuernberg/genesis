@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from app import app, ct_connect, models, basic_auth
+from app import app, auth, ct_connect, models
 from app.views import make_external
 from flask import request
 from werkzeug.contrib.atom import AtomFeed
@@ -7,8 +7,10 @@ from unidecode import unidecode
 
 
 @app.route('/feeds/whatsup.atom')
-@basic_auth.login_required
 def whatsup_recent_posts():
+    # checks token and returns a 403 if the token is not valid
+    auth.feed_auth_or_403(request.args.get('token'))
+
     feed = AtomFeed('Recent WhatsUp Posts',
                     feed_url=request.url,
                     url=request.url_root)
@@ -29,8 +31,10 @@ def whatsup_recent_posts():
 
 
 @app.route('/feeds/whatsup-comments.atom')
-@basic_auth.login_required
 def whatsup_recent_comments():
+    # checks token and returns a 403 if the token is not valid
+    auth.feed_auth_or_403(request.args.get('token'))
+
     feed = AtomFeed('Recent WhatsUp Comments',
                     feed_url=request.url,
                     url=request.url_root)

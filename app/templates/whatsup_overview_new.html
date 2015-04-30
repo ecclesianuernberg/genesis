@@ -3,8 +3,8 @@
 
 {% block head %}
 {{ super() }}
-<link href="{{ url_for('whatsup_recent_posts') }}" rel="alternate" title="Recent WhatsUp Posts" type="application/atom+xml">
-<link href="{{ url_for('whatsup_recent_comments') }}" rel="alternate" title="Recent WhatsUp Comments" type="application/atom+xml">
+<link href="{{ url_for('whatsup_recent_posts', token=token) }}" rel="alternate" title="Recent WhatsUp Posts" type="application/atom+xml">
+<link href="{{ url_for('whatsup_recent_comments', token=token) }}" rel="alternate" title="Recent WhatsUp Comments" type="application/atom+xml">
 {% endblock %}
 
 {% block content %}

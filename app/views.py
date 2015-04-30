@@ -587,12 +587,16 @@ def whatsup_overview():
         flash('Post abgeschickt!', 'success')
         return redirect(redirect_url(default='whatsup_overview'))
 
+    # generate a feed auth token
+    token = auth.generate_feed_auth(auth.active_user())
+
     # ct_data needs a db session to access the ct database
     with ct_connect.session_scope() as ct_session:
         return render_template('whatsup_overview.html',
                                posts=posts,
                                form=form,
-                               ct_session=ct_session)
+                               ct_session=ct_session,
+                               token=token)
 
 
 @app.route('/whatsup/new', methods=['GET', 'POST'])
@@ -632,12 +636,16 @@ def whatsup_overview_new():
             flash('Fehler aufgetreten!', 'danger')
             return redirect(redirect_url(default='whatsup_overview_new'))
 
+    # generate a feed auth token
+    token = auth.generate_feed_auth(auth.active_user())
+
     # ct_data needs a db session to access the ct database
     with ct_connect.session_scope() as ct_session:
         return render_template('whatsup_overview_new.html',
                                posts=posts,
                                form=form,
-                               ct_session=ct_session)
+                               ct_session=ct_session,
+                               token=token)
 
 
 @app.route('/whatsup/<int:id>/upvote')

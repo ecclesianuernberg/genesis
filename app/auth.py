@@ -5,6 +5,7 @@ from flask.ext.restful import abort as abort_rest
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           SignatureExpired, BadSignature, URLSafeSerializer)
 from passlib.hash import bcrypt
+from functools import wraps
 
 
 class CTUser(UserMixin):
@@ -126,19 +127,34 @@ def head_of_group_or_403(group_id):
                 abort(403)
 
 
-def prayer_owner_or_403(prayer_id):
-    ''' if user is now the owner of the prayer abort it '''
-    # needs to be done to fix some import problem
-    from models import get_prayer
+def prayer_owner(func):
+    ''' a decorator that aborts the view if its not the prayer owner '''
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        # needs to be done to fix some import problem
+        from models import get_prayer
 
-    prayer = get_prayer(prayer_id)
-    if '/api/' in request.path:
-        if prayer.user_id != g.user['id']:
-            abort_rest(403)
-    else:
-        if prayer.user_id != [user['id'] for user in session['user']
-                              if user['active']][0]:
-            abort(403)
+        # getting prayer
+        prayer = get_prayer(kwargs['id'])
+
+        # just do this if a prayer with that id exists
+        if prayer is not None:
+
+            if '/api/' in request.path:
+                if prayer.user_id != g.user['id']:
+                    abort_rest(403)
+            else:
+                if prayer.user_id != [user['id'] for user in session['user']
+                                      if user['active']][0]:
+                    abort(403)
+
+        # if there is there isnt a prayer abort it with a 404
+        else:
+            abort(404)
+
+        return func(*args, **kwargs)
+
+    return decorated_function
 
 
 def own_profile_or_403(user_id):

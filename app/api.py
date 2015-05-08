@@ -4,7 +4,7 @@ from flask import jsonify, g
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
 from unidecode import unidecode
 from models import get_random_prayer, get_prayer
-from auth import prayer_owner_or_403, generate_auth_token
+from auth import prayer_owner, generate_auth_token
 
 
 def get_users_name(email):
@@ -99,10 +99,9 @@ class PrayerAPIEdit(Resource):
         super(PrayerAPIEdit, self).__init__()
 
     @basic_auth.login_required
+    @prayer_owner
     @marshal_with(create_prayer_fields('prayerapiedit'))
     def put(self, id):
-        prayer_owner_or_403(id)
-
         prayer = get_prayer(id)
 
         args = self.reqparse.parse_args()
@@ -123,11 +122,11 @@ class PrayerAPIEdit(Resource):
                             pub_date=prayer.pub_date)
 
     @basic_auth.login_required
+    @prayer_owner
     def delete(self, id):
         prayer = get_prayer(id)
 
         if prayer:
-            prayer_owner_or_403(id)
             db.session.delete(prayer)
             db.session.commit()
 

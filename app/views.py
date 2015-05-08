@@ -395,9 +395,8 @@ def prayer_mine():
 
 @app.route('/prayer/<int:id>/del')
 @login_required
+@auth.prayer_owner
 def prayer_del(id):
-    auth.prayer_owner_or_403(id)
-
     prayer = models.get_prayer(id)
 
     try:

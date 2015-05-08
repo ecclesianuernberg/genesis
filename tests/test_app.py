@@ -646,18 +646,36 @@ def test_edit_prayer(client, test_user):
     assert db_entry.name == name
 
 
-@pytest.mark.parametrize('test_user', TEST_USER)
-def test_del_prayer(client, test_user):
+def test_del_prayer(client):
     '''delete prayer'''
+    test_user = TEST_USER[0]
     login(client, test_user['email'], test_user['password'])
 
-    # add prayer to delete it
+    # add prayer and logout
     add_prayer(client, 'Ein Test zum entfernen')
+    logout(client)
 
+    # login as other user and try to delete it
+    wrong_test_user = TEST_USER[1]
+    login(client, wrong_test_user['email'], wrong_test_user['password'])
+
+    rv = del_prayer(client, 1)
+
+    assert rv.status_code == 403
+
+    logout(client)
+
+    # login as right user again
+    login(client, test_user['email'], test_user['password'])
     rv = del_prayer(client, 1)
 
     assert rv.status_code == 200
     assert 'Gebetsanliegen entfernt!' in rv.data
+
+    # try to delete a prayer which is not existing
+    rv = del_prayer(client, 20)
+
+    assert rv.status_code == 404
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -907,6 +925,11 @@ def test_api_edit_prayer(client, test_user):
     assert data_dict.get('name') == name
     assert data_dict.get('id') == 1
     assert data_dict.get('prayer') == 'Noch ein Test'
+
+    # wrong prayer
+    rv = edit_prayer_api(client, 20, body, creds, active, name)
+
+    assert rv.status_code == 404
 
     # wrong password
     creds = create_api_creds(test_user['email'], 'wrongpassword')

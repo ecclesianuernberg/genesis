@@ -418,6 +418,20 @@ def search(client, query):
                        follow_redirects=True)
 
 
+def group_overview_api(client, creds):
+    ''' helper to get group overview over api '''
+    return client.get('/api/groups',
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')
+
+
+def group_item_api(client, creds, id):
+    ''' helper to get group over api '''
+    return client.get('/api/group/{}'.format(id),
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')
+
+
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_login(client, test_user):
     ''' login user'''
@@ -1868,3 +1882,81 @@ def test_search_view(client, test_user):
 
     assert 'zweiter kommentar' in comments[0]
     assert 'erster kommentar' in comments[1]
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_api_group_overview(client, test_user):
+    # unauthorized
+    rv = client.get('/api/groups')
+
+    assert rv.status_code == 401
+
+    # wrong password
+    creds = create_api_creds(test_user['email'], 'wrong')
+    rv = group_overview_api(client, creds)
+
+    assert rv.status_code == 401
+
+    # valid userdata
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = group_overview_api(client, creds)
+
+    assert rv.status_code == 200
+
+    with ct_connect.session_scope() as ct_session:
+        assert len(ct_connect.get_active_groups(ct_session)) == len(
+            json.loads(rv.data))
+
+        for group in json.loads(rv.data):
+            group_ct = ct_connect.get_group(ct_session, group['id'])
+            group_metadata = app.models.get_group_metadata(group['id'])
+
+            assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
+
+            assert group['id'] == group_ct.id
+
+            if group['avatar']:
+                assert group['avatar'] == group_metadata.avatar_id
+
+            if group['description']:
+                assert group['description'] == group_metadata.description
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_api_group_item(client, test_user):
+    # unauthorized
+    rv = client.get('/api/group/1')
+
+    assert rv.status_code == 401
+
+    # wrong password
+    creds = create_api_creds(test_user['email'], 'wrong')
+    rv = group_item_api(client, creds, 1)
+
+    assert rv.status_code == 401
+
+    # valid userdata
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = group_item_api(client, creds, 1)
+
+    assert rv.status_code == 200
+
+    rv_json = json.loads(rv.data)
+
+    with ct_connect.session_scope() as ct_session:
+        group_ct = ct_connect.get_group(ct_session, 1)
+        group_metadata = app.models.get_group_metadata(1)
+
+        assert rv_json['name'] == group_ct.bezeichnung.split(' - ')[-1]
+        assert rv_json['id'] == group_ct.id
+
+        if rv_json['description']:
+            assert rv_json['description'] == group_metadata.description
+
+        assert rv_json['treffzeit'] == group_ct.treffzeit
+        assert rv_json['treffpunkt'] == group_ct.treffpunkt
+        assert rv_json['zielgruppe'] == group_ct.zielgruppe
+        assert rv_json['notiz'] == group_ct.notiz
+
+        if rv_json['avatar']:
+            assert rv.json['avatar'] == group_metadata.avatar_id

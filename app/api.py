@@ -13,7 +13,7 @@ def get_users_name(email):
     return name
 
 
-def create_prayer_fields(endpoint):
+def prayer_fields(endpoint):
     ''' returns dict for using with marshal '''
     return {
         'prayer': fields.String,
@@ -52,9 +52,12 @@ class PrayerAPI(Resource):
         super(PrayerAPI, self).__init__()
 
     @basic_auth.login_required
-    @marshal_with(create_prayer_fields('prayerapi'))
+    @marshal_with(prayer_fields('prayerapi'))
     def get(self):
         prayer = get_random_prayer()
+
+        if prayer is None:
+            abort(404, message='No Prayers found.')
 
         return PrayerObject(prayer=prayer.body,
                             name=prayer.name,
@@ -62,7 +65,7 @@ class PrayerAPI(Resource):
                             pub_date=prayer.pub_date)
 
     @basic_auth.login_required
-    @marshal_with(create_prayer_fields('prayerapi'))
+    @marshal_with(prayer_fields('prayerapi'))
     def post(self):
         args = self.reqparse.parse_args()
 
@@ -100,7 +103,7 @@ class PrayerAPIEdit(Resource):
 
     @basic_auth.login_required
     @prayer_owner
-    @marshal_with(create_prayer_fields('prayerapiedit'))
+    @marshal_with(prayer_fields('prayerapiedit'))
     def put(self, id):
         prayer = get_prayer(id)
 
@@ -135,6 +138,104 @@ class PrayerAPIEdit(Resource):
             abort(404)
 
 
-api.add_resource(PrayerAPI, '/api/prayer')
+group_overview_fields = {
+    'name': fields.String,
+    'description': fields.String,
+    'id': fields.Integer,
+    'avatar': fields.String
+}
 
+
+class GroupOverviewObject(object):
+    def __init__(self, name, description, id, avatar):
+        self.name = name
+        self.description = description
+        self.id = id
+        self.avatar = avatar
+
+
+class GroupAPIOverview(Resource):
+    @basic_auth.login_required
+    @marshal_with(group_overview_fields)
+    def get(self):
+        with ct_connect.session_scope() as ct_session:
+            groups = ct_connect.get_active_groups(ct_session)
+            groups_metadata = [models.get_group_metadata(i.id) for i in groups]
+
+            group_list = []
+            for id, group in enumerate(groups):
+                if hasattr(groups_metadata[id], 'description'):
+                    description = groups_metadata[id].description
+                else:
+                    description = ''
+
+                if hasattr(groups_metadata[id], 'avatar_id'):
+                    avatar_id = groups_metadata[id].avatar_id
+                else:
+                    avatar_id = ''
+
+                group_list.append(
+                    GroupOverviewObject(group.bezeichnung.split(' - ')[-1],
+                                        description, group.id, avatar_id))
+            return group_list
+
+
+def group_fields(endpoint):
+    return {
+        'name': fields.String,
+        'id': fields.Integer,
+        'description': fields.String,
+        'treffzeit': fields.String,
+        'treffpunkt': fields.String,
+        'zielgruppe': fields.String,
+        'notiz': fields.String,
+        'avatar': fields.String,
+        'uri': fields.Url(endpoint)
+    }
+
+
+class GroupObject(object):
+    def __init__(self, name, id, description, treffzeit, treffpunkt,
+                 zielgruppe, notiz, avatar):
+        self.name = name
+        self.id = id
+        self.description = description
+        self.treffzeit = treffzeit
+        self.treffpunkt = treffpunkt
+        self.zielgruppe = zielgruppe
+        self.notiz = notiz
+        self.avatar = avatar
+
+
+class GroupAPIItem(Resource):
+    @basic_auth.login_required
+    @marshal_with(group_fields('groupapiitem'))
+    def get(self, id):
+        with ct_connect.session_scope() as ct_session:
+            group = ct_connect.get_group(ct_session, id)
+            if not group:
+                abort(404)
+
+            group_metadata = models.get_group_metadata(id)
+
+            name = group.bezeichnung.split(' - ')[-1]
+
+            if hasattr(group_metadata, 'description'):
+                description = group_metadata.description
+            else:
+                description = ''
+
+            if hasattr(group_metadata, 'avatar_id'):
+                avatar = group_metadata.avatar_id
+            else:
+                avatar = ''
+
+            return GroupObject(name, group.id, description, group.treffzeit,
+                               group.treffpunkt, group.zielgruppe, group.notiz,
+                               avatar)
+
+
+api.add_resource(PrayerAPI, '/api/prayer')
 api.add_resource(PrayerAPIEdit, '/api/prayer/<int:id>')
+api.add_resource(GroupAPIOverview, '/api/groups')
+api.add_resource(GroupAPIItem, '/api/group/<int:id>')

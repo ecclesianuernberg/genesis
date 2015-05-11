@@ -129,6 +129,7 @@ def head_of_group_or_403(group_id):
 
 def prayer_owner(func):
     ''' a decorator that aborts the view if its not the prayer owner '''
+
     @wraps(func)
     def decorated_function(*args, **kwargs):
         # needs to be done to fix some import problem

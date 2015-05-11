@@ -11,6 +11,7 @@
 
         WSGIDaemonProcess genesis user=www-data group=www-data threads=5
         WSGIScriptAlias / {{ app_dir }}/app.wsgi
+        WSGIPassAuthorization On
 
 	Alias /static {{ app_dir }}/app/static/
 

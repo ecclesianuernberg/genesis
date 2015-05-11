@@ -12,6 +12,7 @@
   git: repo=https://github.com/ecclesianuernberg/genesis
        dest={{ app_dir }}
        version=devel
+       force=yes
 
 - name: virtualenv and install requirements
   pip: requirements={{ app_dir }}/requirements.txt

@@ -278,8 +278,7 @@ def edit_group(client, id, description, where, when, audience, image):
                                'group_image': (f, 'test.jpg'),
                                'where': where,
                                'when': when,
-                               'audience': audience
-                           },
+                               'audience': audience},
                            follow_redirects=True)
 
 
@@ -338,8 +337,7 @@ def edit_profile(client, id, street, postal_code, city, bio, password, twitter,
                                'facebook': facebook,
                                'password': password,
                                'confirm': password,
-                               'user_image': (f, 'test.jpg')
-                           },
+                               'user_image': (f, 'test.jpg')},
                            follow_redirects=True)
 
 
@@ -1885,17 +1883,17 @@ def test_search_view(client, test_user):
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
-def test_api_group_overview(client, test_user):
+def test_api_group_overview_authorized(client, test_user):
     # unauthorized
-    rv = client.get('/api/groups')
+    # rv = client.get('/api/groups')
 
-    assert rv.status_code == 401
+    # assert rv.status_code == 401
 
     # wrong password
-    creds = create_api_creds(test_user['email'], 'wrong')
-    rv = group_overview_api(client, creds)
+    # creds = create_api_creds(test_user['email'], 'wrong')
+    # rv = group_overview_api(client, creds)
 
-    assert rv.status_code == 401
+    # assert rv.status_code == 401
 
     # valid userdata
     creds = create_api_creds(test_user['email'], test_user['password'])
@@ -1912,8 +1910,66 @@ def test_api_group_overview(client, test_user):
             group_metadata = app.models.get_group_metadata(group['id'])
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
-
             assert group['id'] == group_ct.id
+            assert group['treffzeit'] == group_ct.treffzeit
+            assert group['treffpunkt'] == group_ct.treffpunkt
+            assert group['zielgruppe'] == group_ct.zielgruppe
+            assert group['notiz'] == group_ct.notiz
+
+            if group['avatar']:
+                assert group['avatar'] == group_metadata.avatar_id
+
+            if group['description']:
+                assert group['description'] == group_metadata.description
+
+
+def test_api_group_overview_unauthorized(client):
+    rv = client.get('/api/groups')
+
+    assert rv.status_code == 200
+
+    with ct_connect.session_scope() as ct_session:
+        assert len(ct_connect.get_active_groups(ct_session)) == len(
+            json.loads(rv.data))
+
+        for group in json.loads(rv.data):
+            group_ct = ct_connect.get_group(ct_session, group['id'])
+            group_metadata = app.models.get_group_metadata(group['id'])
+
+            assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
+            assert group['id'] == group_ct.id
+            assert group['treffzeit'] == group_ct.treffzeit
+            assert group['treffpunkt'] == ''
+            assert group['zielgruppe'] == group_ct.zielgruppe
+            assert group['notiz'] == group_ct.notiz
+
+            if group['avatar']:
+                assert group['avatar'] == group_metadata.avatar_id
+
+            if group['description']:
+                assert group['description'] == group_metadata.description
+
+
+def test_api_group_overview_wrong_password(client):
+    creds = create_api_creds(TEST_USER[0]['email'], 'wrong')
+    rv = group_overview_api(client, creds)
+
+    assert rv.status_code == 200
+
+    with ct_connect.session_scope() as ct_session:
+        assert len(ct_connect.get_active_groups(ct_session)) == len(
+            json.loads(rv.data))
+
+        for group in json.loads(rv.data):
+            group_ct = ct_connect.get_group(ct_session, group['id'])
+            group_metadata = app.models.get_group_metadata(group['id'])
+
+            assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
+            assert group['id'] == group_ct.id
+            assert group['treffzeit'] == group_ct.treffzeit
+            assert group['treffpunkt'] == ''
+            assert group['zielgruppe'] == group_ct.zielgruppe
+            assert group['notiz'] == group_ct.notiz
 
             if group['avatar']:
                 assert group['avatar'] == group_metadata.avatar_id

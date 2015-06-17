@@ -1,4 +1,4 @@
-from app import app, api, basic_auth, db, ct_connect, models
+from app import app, api, auth, basic_auth, db, ct_connect, models
 from datetime import datetime
 from flask import jsonify, g
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
@@ -142,41 +142,65 @@ group_overview_fields = {
     'name': fields.String,
     'description': fields.String,
     'id': fields.Integer,
-    'avatar': fields.String
+    'avatar': fields.String,
+    'treffzeit': fields.String,
+    'treffpunkt': fields.String,
+    'zielgruppe': fields.String,
+    'notiz': fields.String
 }
 
 
 class GroupOverviewObject(object):
-    def __init__(self, name, description, id, avatar):
+    def __init__(self, name, description, id, avatar, treffzeit, treffpunkt,
+                 zielgruppe, notiz):
         self.name = name
         self.description = description
         self.id = id
         self.avatar = avatar
+        self.treffzeit = treffzeit
+        self.treffpunkt = treffpunkt
+        self.zielgruppe = zielgruppe
+        self.notiz = notiz
 
 
 class GroupAPIOverview(Resource):
-    @basic_auth.login_required
     @marshal_with(group_overview_fields)
     def get(self):
+        print auth.is_basic_authorized()
         with ct_connect.session_scope() as ct_session:
             groups = ct_connect.get_active_groups(ct_session)
             groups_metadata = [models.get_group_metadata(i.id) for i in groups]
 
+            authorized = auth.is_basic_authorized()
+
             group_list = []
             for id, group in enumerate(groups):
+
+                # description
                 if hasattr(groups_metadata[id], 'description'):
                     description = groups_metadata[id].description
                 else:
                     description = ''
 
+                # avatar
                 if hasattr(groups_metadata[id], 'avatar_id'):
                     avatar_id = groups_metadata[id].avatar_id
                 else:
                     avatar_id = ''
 
+                # treffpunkt
+                if authorized:
+                    treffpunkt = group.treffpunkt
+                else:
+                    treffpunkt = ''
+
+                name = group.bezeichnung.split(' - ')[-1]
+
                 group_list.append(
-                    GroupOverviewObject(group.bezeichnung.split(' - ')[-1],
-                                        description, group.id, avatar_id))
+                    GroupOverviewObject(name, description, group.id, avatar_id,
+                                        group.treffzeit, treffpunkt,
+                                        group.zielgruppe, group.notiz))
+
             return group_list
 
 

@@ -182,3 +182,12 @@ def feed_auth_or_403(token):
         s.loads(token)
     except:
         abort(403)
+
+
+def is_basic_authorized():
+    auth = request.authorization
+
+    if not auth:
+        return False
+
+    return verify_password(auth['username'], auth['password'])

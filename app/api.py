@@ -166,7 +166,6 @@ class GroupOverviewObject(object):
 class GroupAPIOverview(Resource):
     @marshal_with(group_overview_fields)
     def get(self):
-        print auth.is_basic_authorized()
         with ct_connect.session_scope() as ct_session:
             groups = ct_connect.get_active_groups(ct_session)
             groups_metadata = [models.get_group_metadata(i.id) for i in groups]

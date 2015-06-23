@@ -38,7 +38,7 @@ def client(db):
     yield app.app.test_client()
 
     # delete temp upload folder
-    shutil.rmtree(app.app.config['UPLOAD_FOLDER'])
+    shutil.rmtree(upload_dir)
 
 
 @pytest.yield_fixture
@@ -186,3 +186,13 @@ def ct_same_username_and_password(request):
 
     request.addfinalizer(fin)
     return user_data
+
+
+@pytest.yield_fixture
+def clean_whoosh_index():
+    whoosh_base = tempfile.mkdtemp()
+    app.app.config['WHOOSH_BASE'] = whoosh_base
+
+    yield
+
+    shutil.rmtree(whoosh_base)

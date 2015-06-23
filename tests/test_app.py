@@ -1126,7 +1126,7 @@ def test_search_person():
         assert TEST_USER[0]['id'] in rv
 
 
-def test_search_whatsup(client):
+def test_search_whatsup(client, clean_whoosh_index):
     test_user = TEST_USER[0]
     login(client, test_user['email'], test_user['password'])
 
@@ -1186,7 +1186,7 @@ def test_search_whatsup(client):
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
-def test_search_view(client, test_user):
+def test_search_view(client, clean_whoosh_index, test_user):
     login(client, test_user['email'], test_user['password'])
 
     # add whatsup posts
@@ -1235,5 +1235,5 @@ def test_search_view(client, test_user):
 
     comments = [i.text for i in soup.find_all('div', class_='media-body')]
 
-    assert 'zweiter kommentar' in comments[0]
-    assert 'erster kommentar' in comments[1]
+    assert 'erster kommentar' in comments[0]
+    assert 'zweiter kommentar' in comments[1]

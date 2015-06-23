@@ -11,7 +11,7 @@
 - name: clone repo
   git: repo=https://github.com/ecclesianuernberg/genesis
        dest={{ app_dir }}
-       version=devel
+       version=master
        force=yes
 
 - name: virtualenv and install requirements

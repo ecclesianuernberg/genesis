@@ -164,7 +164,7 @@ class GroupOverviewObject(object):
 
 
 class GroupAPIOverview(Resource):
-    @marshal_with(group_overview_fields)
+    @marshal_with(group_overview_fields, envelope='groups')
     def get(self):
         with ct_connect.session_scope() as ct_session:
             groups = ct_connect.get_active_groups(ct_session)

@@ -156,9 +156,9 @@ def test_group_overview_authorized(client, test_user):
 
     with ct_connect.session_scope() as ct_session:
         assert len(ct_connect.get_active_groups(ct_session)) == len(
-            json.loads(rv.data))
+            json.loads(rv.data)['groups'])
 
-        for group in json.loads(rv.data):
+        for group in json.loads(rv.data)['groups']:
             group_ct = ct_connect.get_group(ct_session, group['id'])
             group_metadata = app.models.get_group_metadata(group['id'])
 
@@ -183,9 +183,9 @@ def test_group_overview_unauthorized(client):
 
     with ct_connect.session_scope() as ct_session:
         assert len(ct_connect.get_active_groups(ct_session)) == len(
-            json.loads(rv.data))
+            json.loads(rv.data)['groups'])
 
-        for group in json.loads(rv.data):
+        for group in json.loads(rv.data)['groups']:
             group_ct = ct_connect.get_group(ct_session, group['id'])
             group_metadata = app.models.get_group_metadata(group['id'])
 
@@ -211,9 +211,9 @@ def test_group_overview_wrong_password(client):
 
     with ct_connect.session_scope() as ct_session:
         assert len(ct_connect.get_active_groups(ct_session)) == len(
-            json.loads(rv.data))
+            json.loads(rv.data)['groups'])
 
-        for group in json.loads(rv.data):
+        for group in json.loads(rv.data)['groups']:
             group_ct = ct_connect.get_group(ct_session, group['id'])
             group_metadata = app.models.get_group_metadata(group['id'])
 

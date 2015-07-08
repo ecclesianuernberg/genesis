@@ -1,10 +1,12 @@
 from app import app, api, auth, basic_auth, db, ct_connect, models
+from app.views import save_image
 from auth import prayer_owner, generate_auth_token, own_group
 from datetime import datetime
-from flask import jsonify, g
+from flask import jsonify, g, request
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
 from models import get_random_prayer, get_prayer
 from unidecode import unidecode
+import imghdr
 import werkzeug.datastructures
 
 
@@ -288,6 +290,19 @@ class GroupAPIItem(Resource):
 
             if args['description'] is not None:
                 group_metadata.description = args['description']
+
+            # handling the avatar upload
+            if args['avatar'] is not None:
+
+                # needs to be a jpeg else rise a "unsupported" media type error
+                if imghdr.what(args['avatar']) != 'jpeg':
+                    abort(415)
+
+                group_image = save_image(
+                    args['avatar'], request_path=request.path,
+                    user_id=g.user['id'])
+
+                group_metadata.avatar_id = group_image
 
             if hasattr(group_metadata, 'avatar_id'):
                 avatar = group_metadata.avatar_id

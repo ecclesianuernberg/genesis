@@ -123,6 +123,13 @@ def del_prayer_api(client, id, creds):
                          content_type='application/json')
 
 
+def get_prayer_api(client, creds):
+    ''' helper to get random prayer '''
+    return client.get('/api/prayer',
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')
+
+
 def edit_profile(client, id, street, postal_code, city, bio, password, twitter,
                  facebook, image):
     with open(image) as f:

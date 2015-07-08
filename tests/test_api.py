@@ -5,8 +5,8 @@ import json
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
 from app import ct_connect
 from helper import (create_api_creds, get_api_token, add_prayer_api,
-                    edit_prayer_api, del_prayer_api, group_overview_api,
-                    group_item_api)
+                    edit_prayer_api, del_prayer_api, get_prayer_api,
+                    group_overview_api, group_item_api)
 
 
 # get test user
@@ -148,6 +148,30 @@ def test_del_prayer(client, test_user):
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
+def test_get_prayer(client, test_user):
+    ''' get random prayer '''
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    body = 'Test'
+    name = 'Testname'
+
+    # no prayer there
+    rv = get_prayer_api(client, creds)
+
+    assert rv.status_code == 404
+
+    # add prayer
+    add_prayer_api(client, body, creds, name)
+    rv = get_prayer_api(client, creds)
+
+    assert rv.status_code == 200
+
+    data_dict = json.loads(rv.data)
+
+    assert data_dict['prayer'] == body
+    assert data_dict['name'] == name
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
 def test_group_overview_authorized(client, test_user):
     creds = create_api_creds(test_user['email'], test_user['password'])
     rv = group_overview_api(client, creds)
@@ -232,7 +256,7 @@ def test_group_overview_wrong_password(client):
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
-def test_group_item(client, test_user):
+def test_get_group_item(client, test_user):
     # unauthorized
     rv = client.get('/api/group/1')
 

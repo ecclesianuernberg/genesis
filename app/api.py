@@ -1,10 +1,11 @@
 from app import app, api, auth, basic_auth, db, ct_connect, models
+from auth import prayer_owner, generate_auth_token, own_group
 from datetime import datetime
 from flask import jsonify, g
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
-from unidecode import unidecode
 from models import get_random_prayer, get_prayer
-from auth import prayer_owner, generate_auth_token, own_group
+from unidecode import unidecode
+import werkzeug.datastructures
 
 
 def get_users_name(email):
@@ -237,6 +238,9 @@ class GroupAPIItem(Resource):
         self.reqparse.add_argument('treffpunkt', type=str, location='json')
         self.reqparse.add_argument('treffzeit', type=str, location='json')
         self.reqparse.add_argument('zielgruppe', type=str, location='json')
+        self.reqparse.add_argument(
+            'avatar', type=werkzeug.datastructures.FileStorage,
+            location='files')
 
     @basic_auth.login_required
     @marshal_with(group_fields('groupapiitem'))
@@ -268,28 +272,48 @@ class GroupAPIItem(Resource):
     @own_group
     @marshal_with(group_fields('groupapiitem'))
     def put(self, id):
+        args = self.reqparse.parse_args()
+
         with ct_connect.session_scope() as ct_session:
             group = ct_connect.get_group(ct_session, id)
             if not group:
                 abort(404)
 
+            # handling metadata
             group_metadata = models.get_group_metadata(id)
 
-            name = group.bezeichnung.split(' - ')[-1]
+            if not group_metadata:
+                group_metadata = models.GroupMetadata(ct_id=id)
+                db.session.add(group_metadata)
 
-            if hasattr(group_metadata, 'description'):
-                description = group_metadata.description
-            else:
-                description = ''
+            if args['description'] is not None:
+                group_metadata.description = args['description']
 
             if hasattr(group_metadata, 'avatar_id'):
                 avatar = group_metadata.avatar_id
             else:
                 avatar = ''
 
-            return GroupObject(name, group.id, description, group.treffzeit,
-                               group.treffpunkt, group.zielgruppe, group.notiz,
-                               avatar)
+            # handling ct data
+            if args['treffpunkt'] is not None:
+                group.treffpunkt = args['treffpunkt']
+
+            if args['treffzeit'] is not None:
+                group.treffzeit = args['treffzeit']
+
+            if args['zielgruppe'] is not None:
+                group.zielgruppe = args['zielgruppe']
+
+            name = group.bezeichnung.split(' - ')[-1]
+
+            # saving everything
+            db.session.commit()
+            ct_session.add(group)
+            ct_session.commit()
+
+            return GroupObject(name, group.id, group_metadata.description,
+                               group.treffzeit, group.treffpunkt,
+                               group.zielgruppe, group.notiz, avatar)
 
 
 api.add_resource(PrayerAPI, '/api/prayer')

@@ -236,10 +236,10 @@ class GroupObject(object):
 class GroupAPIItem(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('description', type=str, location='json')
-        self.reqparse.add_argument('treffpunkt', type=str, location='json')
-        self.reqparse.add_argument('treffzeit', type=str, location='json')
-        self.reqparse.add_argument('zielgruppe', type=str, location='json')
+        self.reqparse.add_argument('description', location='json')
+        self.reqparse.add_argument('treffpunkt', location='json')
+        self.reqparse.add_argument('treffzeit', location='json')
+        self.reqparse.add_argument('zielgruppe', location='json')
         self.reqparse.add_argument(
             'avatar', type=werkzeug.datastructures.FileStorage,
             location='files')

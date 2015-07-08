@@ -6,7 +6,8 @@ from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
 from app import ct_connect
 from helper import (create_api_creds, get_api_token, add_prayer_api,
                     edit_prayer_api, del_prayer_api, get_prayer_api,
-                    group_overview_api, group_item_api)
+                    get_group_overview_api, get_group_item_api,
+                    edit_group_item_api, edit_group_item_api_avatar)
 
 
 # get test user
@@ -174,7 +175,7 @@ def test_get_prayer(client, test_user):
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_group_overview_authorized(client, test_user):
     creds = create_api_creds(test_user['email'], test_user['password'])
-    rv = group_overview_api(client, creds)
+    rv = get_group_overview_api(client, creds)
 
     assert rv.status_code == 200
 
@@ -229,7 +230,7 @@ def test_group_overview_unauthorized(client):
 
 def test_group_overview_wrong_password(client):
     creds = create_api_creds(TEST_USER[0]['email'], 'wrong')
-    rv = group_overview_api(client, creds)
+    rv = get_group_overview_api(client, creds)
 
     assert rv.status_code == 200
 
@@ -264,17 +265,17 @@ def test_get_group_item(client, test_user):
 
     # wrong password
     creds = create_api_creds(test_user['email'], 'wrong')
-    rv = group_item_api(client, creds, 1)
+    rv = get_group_item_api(client, creds, 1)
 
     assert rv.status_code == 401
 
     # valid userdata
     creds = create_api_creds(test_user['email'], test_user['password'])
-    rv = group_item_api(client, creds, 1)
+    rv = get_group_item_api(client, creds, 1)
 
     assert rv.status_code == 200
 
-    rv_json = json.loads(rv.data)
+    rv_json = json.loads(rv.data)['group']
 
     with ct_connect.session_scope() as ct_session:
         group_ct = ct_connect.get_group(ct_session, 1)
@@ -293,3 +294,51 @@ def test_get_group_item(client, test_user):
 
         if rv_json['avatar']:
             assert rv.json['avatar'] == group_metadata.avatar_id
+
+
+def test_edit_group_item(client, reset_ct_group):
+    description = 'Testdescription'
+    treffpunkt = 'Testtreffpunkt'
+    treffzeit = 'Testtreffzeit'
+    zielgruppe = 'Testzielgruppe'
+
+    # unauthorized
+    creds = create_api_creds(TEST_USER[1]['email'], 'wrong')
+    rv = edit_group_item_api(client, 1, creds, description, treffpunkt,
+                             treffzeit, zielgruppe)
+
+    assert rv.status_code == 401
+
+    # not own group
+    creds = create_api_creds(TEST_USER[1]['email'], TEST_USER[1]['password'])
+    rv = edit_group_item_api(client, 1, creds, description, treffpunkt,
+                             treffzeit, zielgruppe)
+
+    assert rv.status_code == 403
+
+    # own group
+    creds = create_api_creds(TEST_USER[0]['email'], TEST_USER[0]['password'])
+    rv = edit_group_item_api(client, 1, creds, description, treffpunkt,
+                             treffzeit, zielgruppe)
+
+    assert rv.status_code == 200
+
+    rv_json = json.loads(rv.data)['group']
+
+    assert rv_json['description'] == description
+    assert rv_json['treffpunkt'] == treffpunkt
+    assert rv_json['treffzeit'] == treffzeit
+    assert rv_json['zielgruppe'] == zielgruppe
+
+
+def test_edit_group_item_avatar(client, image):
+    creds = create_api_creds(TEST_USER[0]['email'], TEST_USER[0]['password'])
+
+    rv = get_group_item_api(client, creds, 1)
+
+    assert json.loads(rv.data)['group']['avatar'] == ''
+
+    # upload image
+    rv = edit_group_item_api_avatar(client, 1, creds, image)
+
+    assert json.loads(rv.data)['group']['avatar'] != ''

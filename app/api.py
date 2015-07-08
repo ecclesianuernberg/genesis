@@ -1,10 +1,13 @@
 from app import app, api, auth, basic_auth, db, ct_connect, models
+from app.views import save_image
+from auth import prayer_owner, generate_auth_token, own_group
 from datetime import datetime
-from flask import jsonify, g
+from flask import jsonify, g, request
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
-from unidecode import unidecode
 from models import get_random_prayer, get_prayer
-from auth import prayer_owner, generate_auth_token
+from unidecode import unidecode
+import imghdr
+import werkzeug.datastructures
 
 
 def get_users_name(email):
@@ -231,8 +234,18 @@ class GroupObject(object):
 
 
 class GroupAPIItem(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('description', location='json')
+        self.reqparse.add_argument('treffpunkt', location='json')
+        self.reqparse.add_argument('treffzeit', location='json')
+        self.reqparse.add_argument('zielgruppe', location='json')
+        self.reqparse.add_argument(
+            'avatar', type=werkzeug.datastructures.FileStorage,
+            location='files')
+
     @basic_auth.login_required
-    @marshal_with(group_fields('groupapiitem'))
+    @marshal_with(group_fields('groupapiitem'), envelope='group')
     def get(self, id):
         with ct_connect.session_scope() as ct_session:
             group = ct_connect.get_group(ct_session, id)
@@ -256,6 +269,66 @@ class GroupAPIItem(Resource):
             return GroupObject(name, group.id, description, group.treffzeit,
                                group.treffpunkt, group.zielgruppe, group.notiz,
                                avatar)
+
+    @basic_auth.login_required
+    @own_group
+    @marshal_with(group_fields('groupapiitem'), envelope='group')
+    def put(self, id):
+        args = self.reqparse.parse_args()
+
+        with ct_connect.session_scope() as ct_session:
+            group = ct_connect.get_group(ct_session, id)
+            if not group:
+                abort(404)
+
+            # handling metadata
+            group_metadata = models.get_group_metadata(id)
+
+            if not group_metadata:
+                group_metadata = models.GroupMetadata(ct_id=id)
+                db.session.add(group_metadata)
+
+            if args['description'] is not None:
+                group_metadata.description = args['description']
+
+            # handling the avatar upload
+            if args['avatar'] is not None:
+
+                # needs to be a jpeg else rise a "unsupported" media type error
+                if imghdr.what(args['avatar']) != 'jpeg':
+                    abort(415, message='Nur JPGs')
+
+                group_image = save_image(
+                    args['avatar'], request_path=request.path,
+                    user_id=g.user['id'])
+
+                group_metadata.avatar_id = group_image
+
+            if hasattr(group_metadata, 'avatar_id'):
+                avatar = group_metadata.avatar_id
+            else:
+                avatar = ''
+
+            # handling ct data
+            if args['treffpunkt'] is not None:
+                group.treffpunkt = args['treffpunkt']
+
+            if args['treffzeit'] is not None:
+                group.treffzeit = args['treffzeit']
+
+            if args['zielgruppe'] is not None:
+                group.zielgruppe = args['zielgruppe']
+
+            name = group.bezeichnung.split(' - ')[-1]
+
+            # saving everything
+            db.session.commit()
+            ct_session.add(group)
+            ct_session.commit()
+
+            return GroupObject(name, group.id, group_metadata.description,
+                               group.treffzeit, group.treffpunkt,
+                               group.zielgruppe, group.notiz, avatar)
 
 
 api.add_resource(PrayerAPI, '/api/prayer')

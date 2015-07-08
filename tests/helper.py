@@ -222,15 +222,35 @@ def search(client, query):
                        follow_redirects=True)
 
 
-def group_overview_api(client, creds):
+def get_group_overview_api(client, creds):
     ''' helper to get group overview over api '''
     return client.get('/api/groups',
                       headers={'Authorization': 'Basic ' + creds},
                       content_type='application/json')
 
 
-def group_item_api(client, creds, id):
+def get_group_item_api(client, creds, id):
     ''' helper to get group over api '''
     return client.get('/api/group/{}'.format(id),
                       headers={'Authorization': 'Basic ' + creds},
                       content_type='application/json')
+
+
+def edit_group_item_api(client, id, creds, description, treffpunkt, treffzeit,
+                        zielgruppe):
+    ''' helper to edit group over api '''
+    return client.put('/api/group/{}'.format(id),
+                      headers={'Authorization': 'Basic ' + creds},
+                      data=json.dumps({'description': description,
+                                       'treffpunkt': treffpunkt,
+                                       'treffzeit': treffzeit,
+                                       'zielgruppe': zielgruppe}),
+                      content_type='application/json')
+
+
+def edit_group_item_api_avatar(client, id, creds, image):
+    ''' upload group avatar through api '''
+    with open(image) as f:
+        return client.put('/api/group/{}'.format(id),
+                          headers={'Authorization': 'Basic ' + creds},
+                          data={'avatar': (f, 'test.jpg')})

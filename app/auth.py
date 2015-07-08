@@ -109,22 +109,39 @@ def verify_password(email_or_token, password):
     return True
 
 
-def head_of_group_or_403(group_id):
-    ''' checks if current_user is head of the group or aborts '''
-    with ct_connect.session_scope() as ct_session:
-        heads = ct_connect.get_group_heads(ct_session, group_id)
+def own_group(func):
+    ''' a decorator that aborts if its not the own group '''
 
-        # if the request comes from the api it needs a different way to get the
-        # user to check with and a different abort function
-        if '/api/' in request.path:
-            is_head = any(head.email == g.user.username for head in heads)
-            if not is_head:
-                abort_rest(403)
-        else:
-            is_head = any(head.email == current_user.get_id()
-                          for head in heads)
-            if not is_head:
-                abort(403)
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        with ct_connect.session_scope() as ct_session:
+
+            group = ct_connect.get_group(ct_session, kwargs['id'])
+
+            if group is not None:
+
+                heads = ct_connect.get_group_heads(ct_session, kwargs['id'])
+
+                if '/api/' in request.path:
+                    is_head = any(head.email == g.user['email']
+                                  for head in heads)
+                    if not is_head:
+                        abort_rest(403)
+                else:
+                    is_head = any(head.email == current_user.get_id()
+                                  for head in heads)
+                    if not is_head:
+                        abort(403)
+
+            else:
+                if '/api/' in request.path:
+                    abort_rest(404)
+                else:
+                    abort(404)
+
+        return func(*args, **kwargs)
+
+    return decorated_function
 
 
 def prayer_owner(func):
@@ -151,7 +168,10 @@ def prayer_owner(func):
 
         # if there is there isnt a prayer abort it with a 404
         else:
-            abort(404)
+            if '/api/' in request.path:
+                abort_rest(404)
+            else:
+                abort(404)
 
         return func(*args, **kwargs)
 

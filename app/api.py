@@ -4,7 +4,7 @@ from flask import jsonify, g
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
 from unidecode import unidecode
 from models import get_random_prayer, get_prayer
-from auth import prayer_owner, generate_auth_token
+from auth import prayer_owner, generate_auth_token, own_group
 
 
 def get_users_name(email):
@@ -231,9 +231,43 @@ class GroupObject(object):
 
 
 class GroupAPIItem(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('description', type=str, location='json')
+        self.reqparse.add_argument('treffpunkt', type=str, location='json')
+        self.reqparse.add_argument('treffzeit', type=str, location='json')
+        self.reqparse.add_argument('zielgruppe', type=str, location='json')
+
     @basic_auth.login_required
     @marshal_with(group_fields('groupapiitem'))
     def get(self, id):
+        with ct_connect.session_scope() as ct_session:
+            group = ct_connect.get_group(ct_session, id)
+            if not group:
+                abort(404)
+
+            group_metadata = models.get_group_metadata(id)
+
+            name = group.bezeichnung.split(' - ')[-1]
+
+            if hasattr(group_metadata, 'description'):
+                description = group_metadata.description
+            else:
+                description = ''
+
+            if hasattr(group_metadata, 'avatar_id'):
+                avatar = group_metadata.avatar_id
+            else:
+                avatar = ''
+
+            return GroupObject(name, group.id, description, group.treffzeit,
+                               group.treffpunkt, group.zielgruppe, group.notiz,
+                               avatar)
+
+    @basic_auth.login_required
+    @own_group
+    @marshal_with(group_fields('groupapiitem'))
+    def put(self, id):
         with ct_connect.session_scope() as ct_session:
             group = ct_connect.get_group(ct_session, id)
             if not group:

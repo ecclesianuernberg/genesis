@@ -1,0 +1,81 @@
+---
+- name: install deps
+  apt:
+    pkg={{ item }}
+    state=latest
+    update_cache=true
+  with_items:
+    - curl
+    - zsh
+    - stow
+    - vim
+    - python-virtualenv
+    - python-dev
+    - python-apt
+
+- name: add node.js repo
+  apt_repository:
+    repo="ppa:chris-lea/node.js"
+    state=present
+
+- name: install nodejs
+  apt:
+    pkg=nodejs
+    state=latest
+    update_cache=true
+
+- name: install bower
+  npm:
+    name=bower
+    global=yes
+
+- name: get dotfiles
+  git:
+    repo=https://github.com/xsteadfastx/dotfiles.git
+    dest=/home/vagrant/dotfiles
+  become: yes
+  become_user: vagrant
+
+- name: enable dotfiles
+  shell: stow {{ item }}
+  with_items:
+    - git
+    - zsh
+    - vim
+  args:
+    chdir: /home/vagrant/dotfiles
+  become: yes
+  become_user: vagrant
+
+- name: get oh-my-zsh
+  git:
+    repo=https://github.com/robbyrussell/oh-my-zsh.git
+    dest=/home/vagrant/.oh-my-zsh
+  become: yes
+  become_user: vagrant
+
+- name: enable zsh
+  shell: 'sudo chsh -s $(which zsh) vagrant'
+  become: yes
+  become_user: vagrant
+
+- name: install pipsi
+  shell: 'curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python'
+  args:
+    creates: /home/vagrant/.local/bin/pipsi
+  become: yes
+  become_user: vagrant
+
+- name: install Vundle
+  git:
+    repo=https://github.com/gmarik/Vundle.vim.git
+    dest=/home/vagrant/.vim/bundle/Vundle.vim
+  become: yes
+  become_user: vagrant
+
+- name: install tox
+  shell: /home/vagrant/.local/bin/pipsi install tox
+  args:
+    creates: /home/vagrant/.local/bin/tox
+  become: yes
+  become_user: vagrant

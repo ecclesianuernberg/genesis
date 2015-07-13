@@ -1,18 +1,54 @@
 ---
+- name: delete churchtools db
+  mysql_db:
+    name={{ mysql_ct_db }}
+    login_host=localhost
+    login_user={{ mysql_user }}
+    login_password={{ mysql_pass }}
+    state=absent
+
 - name: create churchtools db
-  mysql_db: name={{ mysql_ct_db }}
-            login_host=localhost
-            login_user={{ mysql_user }}
-            login_password={{ mysql_pass }}
-            state=present
+  mysql_db:
+    name={{ mysql_ct_db }}
+    login_host=localhost
+    login_user={{ mysql_user }}
+    login_password={{ mysql_pass }}
+    state=present
 
 - name: cp churchtools dump
-  copy: src=db378317525.sql dest=/tmp
+  copy:
+    src=db378317525.sql
+    dest=/tmp
+
+- name: set faster import
+  mysql_variables:
+    variable={{ item }}
+    value=0
+    login_host=localhost
+    login_user={{ mysql_user }}
+    login_password={{ mysql_pass }}
+  with_items:
+    - autocommit
+    - unique_checks
+    - foreign_key_checks
 
 - name: import churchtools dump
-  mysql_db: name={{ mysql_ct_db }}
-            login_host=localhost
-            login_user={{ mysql_user }}
-            login_password={{ mysql_pass }}
-            state=import
-            target=/tmp/db378317525.sql
+  mysql_db:
+    name={{ mysql_ct_db }}
+    login_host=localhost
+    login_user={{ mysql_user }}
+    login_password={{ mysql_pass }}
+    state=import
+    target=/tmp/db378317525.sql
+
+- name: unset faster import
+  mysql_variables:
+    variable={{ item }}
+    value=1
+    login_host=localhost
+    login_user={{ mysql_user }}
+    login_password={{ mysql_pass }}
+  with_items:
+    - autocommit
+    - unique_checks
+    - foreign_key_checks

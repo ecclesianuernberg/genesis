@@ -12,7 +12,7 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "ubuntu/precise32"
+  # config.vm.box = "ubuntu/precise32"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -55,6 +55,13 @@ Vagrant.configure(2) do |config|
   # View the documentation for the provider you are using for more
   # information on available options.
 
+  config.vm.provider "docker" do |d|
+      d.build_dir = "./vagrant"
+      d.has_ssh = true
+  end
+  config.ssh.port = 22
+  config.ssh.forward_agent = true
+
   # Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
   # such as FTP and Heroku are also available. See the documentation at
   # https://docs.vagrantup.com/v2/push/atlas.html for more information.
@@ -85,6 +92,7 @@ Vagrant.configure(2) do |config|
     ansible.limit = "all"
     ansible.verbose = "v"
     ansible.ask_vault_pass = true
+    ansible.host_key_checking = false
   end
 
 end

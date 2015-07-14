@@ -1,5 +1,5 @@
 body {
-	padding-top: 20px;
+	padding-top: 70px;
 	padding-bottom: 20px;
 }
 h1 {
@@ -8,7 +8,7 @@ h1 {
 	color: #555;
 }
 .container p {
-	margin-bottom: 15px;
+	margin-bottom: 30px;
 	font-size: 21px;
 	font-weight: 200;
 }
@@ -20,16 +20,6 @@ h1 {
 }
 .navbar a.navbar-brand {
 	padding: 9px 15px 8px;
-}
-.business-header {
-	padding-top: 20px;
-	padding-bottom: 20px;
-	height: 220px;
-	background: url("/static/images/header.png") center center no-repeat scroll;
-	-webkit-background-size: cover;
-	-moz-background-size: cover;
-	background-size: cover;
-	-o-background-size: cover;
 }
 .panel-heading {
 	font-weight: bold;

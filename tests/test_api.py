@@ -189,13 +189,15 @@ def test_group_overview_authorized(client, test_user):
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
             assert group['id'] == group_ct.id
-            assert group['treffzeit'] == group_ct.treffzeit
-            assert group['treffpunkt'] == group_ct.treffpunkt
-            assert group['zielgruppe'] == group_ct.zielgruppe
-            assert group['notiz'] == group_ct.notiz
 
-            if group['avatar']:
-                assert group['avatar'] == group_metadata.avatar_id
+            for attribute in ['treffzeit', 'treffpunkt', 'zielgruppe', 'notiz']:
+                if group_ct.__dict__[attribute] == '':
+                    assert group[attribute] is None
+                else:
+                    assert group[attribute] == group_ct.__dict__[attribute]
+
+            if group['avatar_id']:
+                assert group['avatar_id'] == group_metadata.avatar_id
 
             if group['description']:
                 assert group['description'] == group_metadata.description
@@ -216,13 +218,17 @@ def test_group_overview_unauthorized(client):
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
             assert group['id'] == group_ct.id
-            assert group['treffzeit'] == group_ct.treffzeit
-            assert group['treffpunkt'] == ''
-            assert group['zielgruppe'] == group_ct.zielgruppe
-            assert group['notiz'] == group_ct.notiz
 
-            if group['avatar']:
-                assert group['avatar'] == group_metadata.avatar_id
+            assert group['treffpunkt'] is None
+
+            for attribute in ['treffzeit', 'zielgruppe', 'notiz']:
+                if group_ct.__dict__[attribute] == '':
+                    assert group[attribute] is None
+                else:
+                    assert group[attribute] == group_ct.__dict__[attribute]
+
+            if group['avatar_id']:
+                assert group['avatar_id'] == group_metadata.avatar_id
 
             if group['description']:
                 assert group['description'] == group_metadata.description
@@ -244,13 +250,17 @@ def test_group_overview_wrong_password(client):
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
             assert group['id'] == group_ct.id
-            assert group['treffzeit'] == group_ct.treffzeit
-            assert group['treffpunkt'] == ''
-            assert group['zielgruppe'] == group_ct.zielgruppe
-            assert group['notiz'] == group_ct.notiz
 
-            if group['avatar']:
-                assert group['avatar'] == group_metadata.avatar_id
+            assert group['treffpunkt'] is None
+
+            for attribute in ['treffzeit', 'zielgruppe', 'notiz']:
+                if group_ct.__dict__[attribute] == '':
+                    assert group[attribute] is None
+                else:
+                    assert group[attribute] == group_ct.__dict__[attribute]
+
+            if group['avatar_id']:
+                assert group['avatar_id'] == group_metadata.avatar_id
 
             if group['description']:
                 assert group['description'] == group_metadata.description
@@ -287,13 +297,14 @@ def test_get_group_item(client, test_user):
         if rv_json['description']:
             assert rv_json['description'] == group_metadata.description
 
-        assert rv_json['treffzeit'] == group_ct.treffzeit
-        assert rv_json['treffpunkt'] == group_ct.treffpunkt
-        assert rv_json['zielgruppe'] == group_ct.zielgruppe
-        assert rv_json['notiz'] == group_ct.notiz
+        for attribute in ['treffzeit', 'treffpunkt', 'zielgruppe', 'notiz']:
+            if group_ct.__dict__[attribute] == '':
+                assert rv_json[attribute] is None
+            else:
+                assert rv_json[attribute] == group_ct.__dict__[attribute]
 
-        if rv_json['avatar']:
-            assert rv.json['avatar'] == group_metadata.avatar_id
+        if rv_json['avatar_id']:
+            assert rv.json['avatar_id'] == group_metadata.avatar_id
 
 
 def test_edit_group_item(client, reset_ct_group):
@@ -336,9 +347,9 @@ def test_edit_group_item_avatar(client, image):
 
     rv = get_group_item_api(client, creds, 1)
 
-    assert json.loads(rv.data)['group']['avatar'] == ''
+    assert json.loads(rv.data)['group']['avatar_id'] is None
 
     # upload image
     rv = edit_group_item_api_avatar(client, 1, creds, image)
 
-    assert json.loads(rv.data)['group']['avatar'] != ''
+    assert json.loads(rv.data)['group']['avatar_id'] is not None

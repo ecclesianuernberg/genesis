@@ -2,10 +2,10 @@ from app import app, basic_auth, ct_connect
 from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
+from functools import wraps
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           SignatureExpired, BadSignature, URLSafeSerializer)
 from passlib.hash import bcrypt
-from functools import wraps
 
 
 class CTUser(UserMixin):

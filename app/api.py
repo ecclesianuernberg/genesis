@@ -145,7 +145,7 @@ group_overview_fields = {
     'name': fields.String,
     'description': fields.String,
     'id': fields.Integer,
-    'avatar': fields.String,
+    'avatar_id': fields.String,
     'treffzeit': fields.String,
     'treffpunkt': fields.String,
     'zielgruppe': fields.String,
@@ -154,16 +154,31 @@ group_overview_fields = {
 
 
 class GroupOverviewObject(object):
-    def __init__(self, name, description, id, avatar, treffzeit, treffpunkt,
-                 zielgruppe, notiz):
-        self.name = name
-        self.description = description
-        self.id = id
-        self.avatar = avatar
-        self.treffzeit = treffzeit
-        self.treffpunkt = treffpunkt
-        self.zielgruppe = zielgruppe
-        self.notiz = notiz
+    def __init__(self, ct, metadata, authorized):
+        # metadata
+        for attribute in ['description, avatar_id']:
+            if not hasattr(metadata, attribute) or \
+                    metadata.__dict__[attribute] == '':
+                self.__dict__[attribute] = None
+            else:
+                self.__dict__[attribute] = metadata.__dict__[attribute]
+
+        # churchtools
+        self.name = ct.bezeichnung.split(' - ')[-1]
+        self.id = ct.id
+
+        for attribute in ['treffzeit', 'zielgruppe', 'notiz']:
+            if not hasattr(ct, attribute) or ct.__dict__[attribute] == '':
+                self.__dict__[attribute] = None
+            else:
+                self.__dict__[attribute] = ct.__dict__[attribute]
+
+        # treffpunkt just gets returned if user is authorized
+        if authorized:
+            if not hasattr(ct, 'treffpunkt') or ct.treffpunkt == '':
+                self.treffpunkt = None
+            else:
+                self.treffpunkt = ct.treffpunkt
 
 
 class GroupAPIOverview(Resource):
@@ -176,32 +191,10 @@ class GroupAPIOverview(Resource):
             authorized = auth.is_basic_authorized()
 
             group_list = []
-            for id, group in enumerate(groups):
-
-                # description
-                if hasattr(groups_metadata[id], 'description'):
-                    description = groups_metadata[id].description
-                else:
-                    description = ''
-
-                # avatar
-                if hasattr(groups_metadata[id], 'avatar_id'):
-                    avatar_id = groups_metadata[id].avatar_id
-                else:
-                    avatar_id = ''
-
-                # treffpunkt
-                if authorized:
-                    treffpunkt = group.treffpunkt
-                else:
-                    treffpunkt = ''
-
-                name = group.bezeichnung.split(' - ')[-1]
-
+            for pos, group in enumerate(groups):
                 group_list.append(
-                    GroupOverviewObject(name, description, group.id, avatar_id,
-                                        group.treffzeit, treffpunkt,
-                                        group.zielgruppe, group.notiz))
+                    GroupOverviewObject(ct=group, metadata=groups_metadata[pos],
+                                        authorized=authorized))
 
             return group_list
 
@@ -215,22 +208,35 @@ def group_fields(endpoint):
         'treffpunkt': fields.String,
         'zielgruppe': fields.String,
         'notiz': fields.String,
-        'avatar': fields.String,
+        'avatar_id': fields.String,
         'uri': fields.Url(endpoint)
     }
 
 
 class GroupObject(object):
-    def __init__(self, name, id, description, treffzeit, treffpunkt,
-                 zielgruppe, notiz, avatar):
-        self.name = name
-        self.id = id
-        self.description = description
-        self.treffzeit = treffzeit
-        self.treffpunkt = treffpunkt
-        self.zielgruppe = zielgruppe
-        self.notiz = notiz
-        self.avatar = avatar
+    def __init__(self, ct, metadata):
+        # this is a pretty ugly hack. even if it still works im not sure what
+        # to do with it. i just want to get rid of alot of boilerplate
+        # with this. i use this to clean empty strings to None that the API
+        # return a NULL instead of a empty string.
+
+        # metadata
+        for attribute in ['description', 'avatar_id']:
+            if not hasattr(metadata, attribute) or \
+                    metadata.__dict__[attribute] == '':
+                self.__dict__[attribute] = None
+            else:
+                self.__dict__[attribute] = metadata.__dict__[attribute]
+
+        # churchtools
+        self.name = ct.bezeichnung.split(' - ')[-1]
+        self.id = ct.id
+
+        for attribute in ['treffzeit', 'treffpunkt', 'zielgruppe', 'notiz']:
+            if not hasattr(ct, attribute) or ct.__dict__[attribute] == '':
+                self.__dict__[attribute] = None
+            else:
+                self.__dict__[attribute] = ct.__dict__[attribute]
 
 
 class GroupAPIItem(Resource):
@@ -254,21 +260,7 @@ class GroupAPIItem(Resource):
 
             group_metadata = models.get_group_metadata(id)
 
-            name = group.bezeichnung.split(' - ')[-1]
-
-            if hasattr(group_metadata, 'description'):
-                description = group_metadata.description
-            else:
-                description = ''
-
-            if hasattr(group_metadata, 'avatar_id'):
-                avatar = group_metadata.avatar_id
-            else:
-                avatar = ''
-
-            return GroupObject(name, group.id, description, group.treffzeit,
-                               group.treffpunkt, group.zielgruppe, group.notiz,
-                               avatar)
+            return GroupObject(ct=group, metadata=group_metadata)
 
     @basic_auth.login_required
     @own_group
@@ -304,11 +296,6 @@ class GroupAPIItem(Resource):
 
                 group_metadata.avatar_id = group_image
 
-            if hasattr(group_metadata, 'avatar_id'):
-                avatar = group_metadata.avatar_id
-            else:
-                avatar = ''
-
             # handling ct data
             if args['treffpunkt'] is not None:
                 group.treffpunkt = args['treffpunkt']
@@ -319,19 +306,98 @@ class GroupAPIItem(Resource):
             if args['zielgruppe'] is not None:
                 group.zielgruppe = args['zielgruppe']
 
-            name = group.bezeichnung.split(' - ')[-1]
-
             # saving everything
             db.session.commit()
             ct_session.add(group)
             ct_session.commit()
 
-            return GroupObject(name, group.id, group_metadata.description,
-                               group.treffzeit, group.treffpunkt,
-                               group.zielgruppe, group.notiz, avatar)
+            return GroupObject(ct=ct_connect.get_group(ct_session, id),
+                               metadata=models.get_group_metadata(id))
+
+
+def profile_fields(endpoint):
+    return {
+        'id': fields.Integer,
+        'first_name': fields.String,
+        'name': fields.String,
+        'street': fields.String,
+        'postal_code': fields.String,
+        'city': fields.String,
+        'avatar': fields.String,
+        'bio': fields.String,
+        'twitter': fields.String,
+        'facebook': fields.String,
+        'uri': fields.Url(endpoint)
+    }
+
+
+class ProfileObject(object):
+    def __init__(self, id, first_name, name, street, postal_code, city, avatar,
+                 bio, twitter, facebook):
+        self.id = id
+        self.first_name = first_name
+        self.name = name
+        self.street = street
+        self.city = city
+        self.avatar = avatar
+        self.bio = bio
+        self.twitter = twitter
+        self.facebook = facebook
+
+
+class ProfileAPI(Resource):
+    @basic_auth.login_required
+    @marshal_with(profile_fields('profileapi'), envelope='profile')
+    def get(self, id):
+        with ct_connect.session_scope() as ct_session:
+            user = ct_connect.get_person_from_id(ct_session, id)
+            if not user:
+                abort(404)
+
+            user = user[0]
+
+            # getting metadata
+            user_metadata = models.get_user_metadata(id)
+
+            own_profile = False
+            if g.user['id'] == id:
+                own_profile = True
+
+            # avatar
+            if not hasattr(user_metadata, 'avatar_id') or \
+                    user_metadata.avatar_id == '':
+                avatar = None
+            else:
+                avatar = user_metadata.avatar_id
+
+            # bio
+            if not hasattr(user_metadata, 'bio') or \
+                    user_metadata.bio == '':
+                bio = None
+            else:
+                bio = user_metadata.bio
+
+            # twitter
+            if not hasattr(user_metadata, 'twitter') or \
+                    user_metadata.twitter == '':
+                twitter = None
+            else:
+                twitter = user_metadata.twitter
+
+            # facebook
+            if not hasattr(user_metadata, 'facebook') or \
+                    user_metadata.facebook == '':
+                facebook = None
+            else:
+                facebook = user_metadata.facebook
+
+            return ProfileObject(user.id, user.vorname, user.name,
+                                 user.strasse, user.plz, user.ort, avatar, bio,
+                                 twitter, facebook)
 
 
 api.add_resource(PrayerAPI, '/api/prayer')
 api.add_resource(PrayerAPIEdit, '/api/prayer/<int:id>')
 api.add_resource(GroupAPIOverview, '/api/groups')
 api.add_resource(GroupAPIItem, '/api/group/<int:id>')
+api.add_resource(ProfileAPI, '/api/profile/<int:id>')

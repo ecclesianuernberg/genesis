@@ -13,6 +13,8 @@
         WSGIScriptAlias / {{ app_dir }}/app.wsgi
         WSGIPassAuthorization On
 
+	Header set Access-Control-Allow-Origin "*"
+
 	Alias /static {{ app_dir }}/app/static/
 
         <Directory {{ app_dir }}>

@@ -10,16 +10,18 @@
     - python-virtualenv
     - libjpeg-dev
 
-- name: virtualenv and install requirements
+- name: install pip requirements
   pip:
     requirements={{ app_dir }}/requirements.txt
-    virtualenv={{ app_dir }}/env
-    virtualenv_command=virtualenv
 
 - name: create config
   template:
     src=config.py.j2
-    dest={{ app_dir }}/config.py
+    dest=/tmp/config.py
+
+- name: move config
+  command:
+    mv /tmp/config.py {{ app_dir }}/config.py
 
 - name: create log directory
   file:
@@ -55,7 +57,7 @@
     state=present
 
 - name: upgrade db
-  command: env/bin/python manage.py db upgrade chdir={{ app_dir }}
+  command: python manage.py db upgrade chdir={{ app_dir }}
 
 - name: chown dir
   file:

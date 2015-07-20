@@ -35,6 +35,11 @@ class DevelopmentConfig(Config):
     DEBUG = True
     HOST = '0.0.0.0'
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{{ mysql_genesis_user }}:{{ mysql_genesis_pass }}@{{ mysql_genesis_host }}/{{ mysql_genesis_db_devel }}?charset=utf8'
+    MAIL_SERVER = '{{ mail_server }}'
+    MAIL_USE_TLS = {{ mail_use_tls }}
+    MAIL_USERNAME = '{{ mail_username }}'
+    MAIL_PASSWORD = '{{ mail_password }}'
+    MAIL_DEFAULT_SENDER = '{{ mail_default_sender }}'
 
 
 class TestingConfig(Config):

@@ -1,6 +1,6 @@
 from app import app, api, auth, basic_auth, db, ct_connect, models
 from app.views import save_image
-from auth import prayer_owner, generate_auth_token, own_group
+from auth import prayer_owner, generate_auth_token, own_group, own_profile
 from datetime import datetime
 from flask import jsonify, g, request
 from flask.ext.restful import (Resource, reqparse, fields, marshal_with, abort)
@@ -323,7 +323,7 @@ def profile_fields(endpoint):
         'street': fields.String,
         'postal_code': fields.String,
         'city': fields.String,
-        'avatar': fields.String,
+        'avatar_id': fields.String,
         'bio': fields.String,
         'twitter': fields.String,
         'facebook': fields.String,
@@ -332,20 +332,50 @@ def profile_fields(endpoint):
 
 
 class ProfileObject(object):
-    def __init__(self, id, first_name, name, street, postal_code, city, avatar,
-                 bio, twitter, facebook):
-        self.id = id
-        self.first_name = first_name
-        self.name = name
-        self.street = street
-        self.city = city
-        self.avatar = avatar
-        self.bio = bio
-        self.twitter = twitter
-        self.facebook = facebook
+    def __init__(self, ct, metadata, own_profile):
+        # metadata
+        for attribute in ['avatar_id', 'bio', 'twitter', 'facebook']:
+            if not hasattr(metadata, attribute) or \
+                    metadata.__dict__[attribute] == '':
+                self.__dict__[attribute] = None
+            else:
+                self.__dict__[attribute] = metadata.__dict__[attribute]
+
+        # churchtools
+        attr_dict = {'id': 'id',
+                     'vorname': 'first_name',
+                     'name': 'name',
+                     'plz': 'postal_code',
+                     'ort': 'city'}
+
+        for key, value in attr_dict.iteritems():
+            if not hasattr(ct, key) or ct.__dict__[key] == '':
+                self.__dict__[value] = None
+            else:
+                self.__dict__[value] = ct.__dict__[key]
+
+        if own_profile:
+            if not hasattr(ct, 'strasse'):
+                self.street = None
+            else:
+                self.street = ct.strasse
+        else:
+            self.street = None
 
 
 class ProfileAPI(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('street', location='json')
+        self.reqparse.add_argument('postal_code', location='json')
+        self.reqparse.add_argument('city', location='json')
+        self.reqparse.add_argument('bio', location='json')
+        self.reqparse.add_argument('twitter', location='json')
+        self.reqparse.add_argument('facebook', location='json')
+        self.reqparse.add_argument(
+            'avatar', type=werkzeug.datastructures.FileStorage,
+            location='files')
+
     @basic_auth.login_required
     @marshal_with(profile_fields('profileapi'), envelope='profile')
     def get(self, id):
@@ -363,37 +393,65 @@ class ProfileAPI(Resource):
             if g.user['id'] == id:
                 own_profile = True
 
-            # avatar
-            if not hasattr(user_metadata, 'avatar_id') or \
-                    user_metadata.avatar_id == '':
-                avatar = None
-            else:
-                avatar = user_metadata.avatar_id
+            return ProfileObject(ct=user, metadata=user_metadata,
+                                 own_profile=own_profile)
 
-            # bio
-            if not hasattr(user_metadata, 'bio') or \
-                    user_metadata.bio == '':
-                bio = None
-            else:
-                bio = user_metadata.bio
+    @basic_auth.login_required
+    @own_profile
+    @marshal_with(profile_fields('profileapi'), envelope='profile')
+    def put(self, id):
+        args = self.reqparse.parse_args()
 
-            # twitter
-            if not hasattr(user_metadata, 'twitter') or \
-                    user_metadata.twitter == '':
-                twitter = None
-            else:
-                twitter = user_metadata.twitter
+        with ct_connect.session_scope() as ct_session:
+            user = ct_connect.get_person_from_id(ct_session, id)
+            if not user:
+                abort(404)
 
-            # facebook
-            if not hasattr(user_metadata, 'facebook') or \
-                    user_metadata.facebook == '':
-                facebook = None
-            else:
-                facebook = user_metadata.facebook
+            # metadata
+            user_metadata = models.get_user_metadata(id)
+            if not user_metadata:
+                user_metadata = models.UserMetadata(ct_id=id)
+                db.session.add(user_metadata)
 
-            return ProfileObject(user.id, user.vorname, user.name,
-                                 user.strasse, user.plz, user.ort, avatar, bio,
-                                 twitter, facebook)
+            if args['bio'] is not None:
+                user_metadata.bio = args['bio']
+
+            if args['twitter'] is not None:
+                user_metadata.twitter = args['twitter']
+
+            if args['facebook'] is not None:
+                user_metadata.facebook = args['facebook']
+
+            # handling the avatar upload
+            if args['avatar'] is not None:
+
+                # needs to be a jpeg else rise a "unsupported" media type error
+                if imghdr.what(args['avatar']) != 'jpeg':
+                    abort(415, message='Nur JPGs')
+
+                profile_image = save_image(
+                    args['avatar'], request_path=request.path,
+                    user_id=g.user['id'])
+
+                user_metadata.avatar_id = profile_image
+
+            # churchtools
+            if args['street'] is not None:
+                user[0].strasse = args['street']
+
+            if args['postal_code'] is not None:
+                user[0].plz = args['postal_code']
+
+            if args['city'] is not None:
+                user[0].ort = args['city']
+
+            # saving everything
+            db.session.commit()
+            ct_session.add(user[0])
+            ct_session.commit()
+
+            return ProfileObject(ct=user[0], metadata=user_metadata,
+                                 own_profile=True)
 
 
 api.add_resource(PrayerAPI, '/api/prayer')

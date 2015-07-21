@@ -178,10 +178,33 @@ def prayer_owner(func):
     return decorated_function
 
 
-def own_profile_or_403(user_id):
-    ''' allowed to view own profile edit form else abort it '''
-    if session['user'][0]['id'] != user_id:
-        abort(403)
+def own_profile(func):
+    ''' a decorator that aborts if its not the logged in users profile '''
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        with ct_connect.session_scope() as ct_session:
+            person = ct_connect.get_person_from_id(ct_session, kwargs['id'])
+
+            if person is not None:
+
+                if '/api/' in request.path:
+                    if kwargs['id'] != g.user['id']:
+                        abort_rest(403)
+                else:
+                    if kwargs['id'] != [user['id']
+                                        for user in session['user']
+                                        if user['active']][0]:
+                        abort(403)
+
+            else:
+                if '/api/' in request.path:
+                    abort_rest(404)
+                else:
+                    abort(404)
+
+        return func(*args, **kwargs)
+
+    return decorated_function
 
 
 def active_user():

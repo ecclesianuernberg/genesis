@@ -254,3 +254,30 @@ def edit_group_item_api_avatar(client, id, creds, image):
         return client.put('/api/group/{}'.format(id),
                           headers={'Authorization': 'Basic ' + creds},
                           data={'avatar': (f, 'test.jpg')})
+
+
+def get_profile_api(client, creds, id):
+    return client.get('/api/profile/{}'.format(id),
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')
+
+
+def edit_profile_api(client, id, creds, street, postal_code, city, bio, twitter,
+                     facebook):
+    return client.put('/api/profile/{}'.format(id),
+                      headers={'Authorization': 'Basic ' + creds},
+                      data=json.dumps({'street': street,
+                                       'postal_code': postal_code,
+                                       'city': city,
+                                       'bio': bio,
+                                       'twitter': twitter,
+                                       'facebook': facebook}),
+                      content_type='application/json')
+
+
+def edit_profile_api_avatar(client, id, creds, image):
+    ''' upload profile avatar through api '''
+    with open(image) as f:
+        return client.put('/api/profile/{}'.format(id),
+                          headers={'Authorization': 'Basic ' + creds},
+                          data={'avatar': (f, 'test.jpg')})

@@ -7,7 +7,8 @@ from app import ct_connect
 from helper import (create_api_creds, get_api_token, add_prayer_api,
                     edit_prayer_api, del_prayer_api, get_prayer_api,
                     get_group_overview_api, get_group_item_api,
-                    edit_group_item_api, edit_group_item_api_avatar)
+                    edit_group_item_api, edit_group_item_api_avatar,
+                    get_profile_api, edit_profile_api, edit_profile_api_avatar)
 
 
 # get test user
@@ -353,3 +354,90 @@ def test_edit_group_item_avatar(client, image):
     rv = edit_group_item_api_avatar(client, 1, creds, image)
 
     assert json.loads(rv.data)['group']['avatar_id'] is not None
+
+
+def test_get_profile(client):
+    # unauhorized
+    rv = client.get('/api/profile/1')
+
+    assert rv.status_code == 401
+
+    # own profile
+    test_user = TEST_USER[0]
+    creds = create_api_creds(test_user['email'], test_user['password'])
+
+    # non existing profile
+    rv = get_profile_api(client, creds, 1)
+
+    assert rv.status_code == 404
+
+    # own profile
+    rv = get_profile_api(client, creds, 163)
+
+    assert rv.status_code == 200
+
+    data_dict = json.loads(rv.data)['profile']
+
+    assert data_dict['id'] == test_user['id']
+    assert data_dict['name'] == test_user['name'].decode('utf-8')
+    assert data_dict['first_name'] == test_user['vorname'].decode('utf-8')
+    assert data_dict['street'] == test_user['strasse'].decode('utf-8')
+    assert data_dict['postal_code'] == test_user['plz'].decode('utf-8')
+    assert data_dict['city'] == test_user['ort'].decode('utf-8')
+    assert data_dict['avatar_id'] is None
+    assert data_dict['bio'] is None
+    assert data_dict['twitter'] is None
+    assert data_dict['facebook'] is None
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_edit_profile(client, test_user, reset_ct_user):
+    # fake data
+    street = 'fakestreet 1'
+    postal_code = '1234'
+    city = 'fakecity'
+    bio = 'fakebio'
+    twitter = 'faketwitter'
+    facebook = 'fakefacebook'
+
+    # wrong profile
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = edit_profile_api(client, 1, creds, street, postal_code, city, bio,
+                          twitter, facebook)
+
+    # forbidden
+    assert rv.status_code == 403
+
+    # own profile
+    creds = create_api_creds(test_user['email'], test_user['password'])
+    rv = edit_profile_api(client, test_user['id'], creds, street, postal_code,
+                          city, bio, twitter, facebook)
+
+    assert rv.status_code == 200
+
+    data_dict = json.loads(rv.data)['profile']
+
+    assert data_dict['id'] == test_user['id']
+    assert data_dict['name'] == test_user['name'].decode('utf-8')
+    assert data_dict['first_name'] == test_user['vorname'].decode('utf-8')
+    assert data_dict['street'] == street
+    assert data_dict['postal_code'] == postal_code
+    assert data_dict['city'] == city
+    assert data_dict['avatar_id'] is None
+    assert data_dict['bio'] == bio
+    assert data_dict['twitter'] == twitter
+    assert data_dict['facebook'] == facebook
+
+
+@pytest.mark.parametrize('test_user', TEST_USER)
+def test_edit_profile_avatar(client, image, test_user):
+    creds = create_api_creds(test_user['email'], test_user['password'])
+
+    rv = get_profile_api(client, creds, test_user['id'])
+
+    assert json.loads(rv.data)['profile']['avatar_id'] is None
+
+    # upload file
+    rv = edit_profile_api_avatar(client, test_user['id'], creds, image)
+
+    assert json.loads(rv.data)['profile']['avatar_id'] is not None

@@ -13,6 +13,9 @@
 - name: install pip requirements
   pip:
     requirements={{ app_dir }}/requirements.txt
+    virtualenv=/home/vagrant/genesis
+  become: yes
+  become_user: vagrant
 
 - name: create config
   template:
@@ -57,7 +60,7 @@
     state=present
 
 - name: upgrade db
-  command: python manage.py db upgrade chdir={{ app_dir }}
+  command: /home/vagrant/genesis/bin/python manage.py db upgrade chdir={{ app_dir }}
 
 - name: chown dir
   file:
@@ -65,3 +68,9 @@
     recurse=yes
     owner={{ app_user }}
     group={{ app_user }}
+
+- name: add executable
+  template:
+    src=genesis.j2
+    dest=/usr/local/bin/genesis
+    mode="u=rwx,g=rx,o=rx"

@@ -8,9 +8,8 @@ genesis
 4. place sql-dump in `ansible/roles/churchtools/files/`
 5. `vagrant up`
 6. `vagrant ssh`
-7. `cd /vagrant`
-8. `python manage.py runserver`
-9. open browser and go to `http://localhost:5000`
+7. `genesis`
+8. open browser and go to `http://localhost:5000`
 
 ## deploy
 1. `ansible-playbook -i ansible/ecclesia ansible/deploy.yml -k --ask-vault-pass`

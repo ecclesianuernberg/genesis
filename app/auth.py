@@ -207,6 +207,50 @@ def own_profile(func):
     return decorated_function
 
 
+def valid_groups_and_users(users=None, groups=None):
+    ''' decorator to limit access a view to a list of users ids or members
+    of a list of groups'''
+    def decorator(func):
+        @wraps(func)
+        def decorated_function(*args, **kwargs):
+            # list of valid user ids
+            valid_users = []
+
+            # add user ids to the valid_user list
+            if users is not None:
+                valid_users.extend(users)
+
+            if groups is not None:
+                for group in groups:
+                    with ct_connect.session_scope() as ct_session:
+                        # create a list of ids of group members
+                        group_users = []
+                        for user in ct_connect.get_group_members(ct_session,
+                                                                 group):
+                            group_users.append(user.id)
+
+                    # add valid group members ids to valid_users list
+                    valid_users.extend(group_users)
+
+            # do the checking
+            if '/api/' in request.path:
+
+                if g.user['id'] in valid_users:
+                    return func(*args, **kwargs)
+                else:
+                    abort_rest(403)
+
+            else:
+                if active_user()['id'] in valid_users:
+                    return func(*args, **kwargs)
+                else:
+                    abort(403)
+
+        return decorated_function
+
+    return decorator
+
+
 def active_user():
     ''' return the active user out of user session '''
     return [user for user in session['user'] if user['active']][0]

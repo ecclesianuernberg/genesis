@@ -102,10 +102,8 @@ def index():
 
 @app.route('/edit', methods=['GET', 'POST'])
 @login_required
+@auth.valid_groups_and_users(users=[163], groups=[1])
 def index_edit():
-    if current_user.get_id() != 'xsteadfastx@gmail.com':
-        abort(405)
-
     frontpage = models.FrontPage.query.all()[-1:]
 
     if not frontpage:

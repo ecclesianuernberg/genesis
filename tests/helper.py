@@ -281,3 +281,9 @@ def edit_profile_api_avatar(client, id, creds, image):
         return client.put('/api/profile/{}'.format(id),
                           headers={'Authorization': 'Basic ' + creds},
                           data={'avatar': (f, 'test.jpg')})
+
+
+def get_auth_api(client, creds, resource):
+    return client.get(resource,
+                      headers={'Authorization': 'Basic ' + creds},
+                      content_type='application/json')

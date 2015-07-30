@@ -36,7 +36,7 @@ def test_valid_users_and_groups(client):
     login(client, test_user['email'], test_user['password'])
     rv = client.get('/test')
 
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
 
 def test_valid_users_and_groups_api(client):
@@ -61,7 +61,7 @@ def test_valid_users_and_groups_api(client):
     creds = create_api_creds(test_user['email'], test_user['password'])
     rv = get_auth_api(client, creds, '/api/test')
 
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
     # valid user
     test_user = TEST_USER[0]

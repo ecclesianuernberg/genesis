@@ -164,7 +164,7 @@ def test_del_prayer(client):
 
     rv = del_prayer(client, 1)
 
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
     logout(client)
 
@@ -916,7 +916,7 @@ def test_whatsup_feed_posts(client, test_user):
     rv = client.get('/feeds/whatsup.atom')
 
     # not allowed
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
     # logged in
     token = auth.generate_feed_auth(test_user)
@@ -943,7 +943,7 @@ def test_whatsup_feed_posts(client, test_user):
     token = 'foobar'
     rv = get_whatsup_feed_posts(client, token)
 
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -961,7 +961,7 @@ def test_whatsup_feed_comments(client, test_user):
     rv = client.get('/feeds/whatsup-comments.atom')
 
     # not allowed
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
     # logged in
     token = auth.generate_feed_auth(test_user)
@@ -989,7 +989,7 @@ def test_whatsup_feed_comments(client, test_user):
     token = 'foobar'
     rv = get_whatsup_feed_comments(client, token)
 
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -1034,7 +1034,7 @@ def test_edit_index(client, image):
     login(client, test_user['email'], test_user['password'])
     rv = client.get('/edit')
 
-    assert rv.status_code == 405
+    assert rv.status_code == 401
 
     logout(client)
 

@@ -326,7 +326,7 @@ def test_edit_group_item(client, reset_ct_group):
     rv = edit_group_item_api(client, 1, creds, description, treffpunkt,
                              treffzeit, zielgruppe)
 
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
     # own group
     creds = create_api_creds(TEST_USER[0]['email'], TEST_USER[0]['password'])
@@ -406,7 +406,7 @@ def test_edit_profile(client, test_user, reset_ct_user):
                           twitter, facebook)
 
     # forbidden
-    assert rv.status_code == 403
+    assert rv.status_code == 401
 
     # own profile
     creds = create_api_creds(test_user['email'], test_user['password'])

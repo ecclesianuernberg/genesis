@@ -126,12 +126,12 @@ def own_group(func):
                     is_head = any(head.email == g.user['email']
                                   for head in heads)
                     if not is_head:
-                        abort_rest(403)
+                        abort_rest(401)
                 else:
                     is_head = any(head.email == current_user.get_id()
                                   for head in heads)
                     if not is_head:
-                        abort(403)
+                        abort(401)
 
             else:
                 if '/api/' in request.path:
@@ -160,11 +160,11 @@ def prayer_owner(func):
 
             if '/api/' in request.path:
                 if prayer.user_id != g.user['id']:
-                    abort_rest(403)
+                    abort_rest(401)
             else:
                 if prayer.user_id != [user['id'] for user in session['user']
                                       if user['active']][0]:
-                    abort(403)
+                    abort(401)
 
         # if there is there isnt a prayer abort it with a 404
         else:
@@ -189,12 +189,12 @@ def own_profile(func):
 
                 if '/api/' in request.path:
                     if kwargs['id'] != g.user['id']:
-                        abort_rest(403)
+                        abort_rest(401)
                 else:
                     if kwargs['id'] != [user['id']
                                         for user in session['user']
                                         if user['active']][0]:
-                        abort(403)
+                        abort(401)
 
             else:
                 if '/api/' in request.path:
@@ -238,13 +238,13 @@ def valid_groups_and_users(users=None, groups=None):
                 if g.user['id'] in valid_users:
                     return func(*args, **kwargs)
                 else:
-                    abort_rest(403)
+                    abort_rest(401)
 
             else:
                 if active_user()['id'] in valid_users:
                     return func(*args, **kwargs)
                 else:
-                    abort(403)
+                    abort(401)
 
         return decorated_function
 
@@ -262,13 +262,13 @@ def generate_feed_auth(user):
     return s.dumps({'id': user['email']})
 
 
-def feed_auth_or_403(token):
+def feed_auth_or_401(token):
     s = URLSafeSerializer(app.config['SECRET_KEY'],
                           salt=app.config['FEED_SALT'])
     try:
         s.loads(token)
     except:
-        abort(403)
+        abort(401)
 
 
 def is_basic_authorized():

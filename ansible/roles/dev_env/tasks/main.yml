@@ -13,6 +13,24 @@
     - python-dev
     - python-apt
 
+- name: add deadsnakes repo
+  apt_repository:
+    repo="ppa:fkrull/deadsnakes"
+    state=present
+
+- name: install python3.4
+  apt:
+    pkg={{ item }}
+    state=latest
+  with_items:
+    - python3.4
+    - python3.4-dev
+
+- name: upgrade virtualenv
+  pip:
+    name=virtualenv
+    state=latest
+
 - name: add node.js repo
   apt_repository:
     repo="ppa:chris-lea/node.js"

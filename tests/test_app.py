@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-import app
 import flask
 import tempfile
 import pytest
 import feedparser
-from app import ct_connect, auth, mailing
+from app import APP, ct_connect, auth, MAIL, mailing, models, views
 from passlib.hash import bcrypt
 from PIL import Image
 from random import choice
@@ -22,7 +21,7 @@ from helper import (login, logout, add_prayer, edit_prayer, del_prayer,
                     edit_index, search)
 
 # get test user
-TEST_USER = app.app.config['TEST_USER']
+TEST_USER = APP.config['TEST_USER']
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -117,7 +116,7 @@ def test_add_prayer(client, test_user):
     assert prayer in rv.data
 
     # check db entry
-    db_entry = app.models.get_prayer(1)
+    db_entry = models.get_prayer(1)
 
     assert db_entry.body == prayer
     assert db_entry.active is True
@@ -142,7 +141,7 @@ def test_edit_prayer(client, test_user):
     assert prayer in rv.data
 
     # check db entry
-    db_entry = app.models.get_prayer(1)
+    db_entry = models.get_prayer(1)
 
     assert db_entry.body == prayer
     assert db_entry.active is False
@@ -253,7 +252,7 @@ def test_group_edit_allowed(client, reset_ct_group, own_group, image):
                     image=image)
 
     # db entry
-    avatar_id = app.models.GroupMetadata.query.first().avatar_id
+    avatar_id = models.GroupMetadata.query.first().avatar_id
 
     assert rv.status_code == 200
     assert 'Dies ist ein Test' in rv.data
@@ -326,7 +325,7 @@ def test_group_data(client, test_user):
 def test_persons():
     ''' creates session dict for persons '''
     with ct_connect.session_scope() as ct_session:
-        test_user = app.app.config['TEST_USER'][1]
+        test_user = APP.config['TEST_USER'][1]
         user = ct_connect.get_person(ct_session, test_user['email'])
         persons = auth.CTUser.get_persons(user)
         assert persons[0]['email'] == test_user['email']
@@ -437,7 +436,7 @@ def test_edit_profile(client, reset_ct_user, test_user, image):
     assert 'Profil geaendert' in rv.data
 
     # test user_metadata
-    user_metadata = app.models.get_user_metadata(test_user['id'])
+    user_metadata = models.get_user_metadata(test_user['id'])
 
     assert user_metadata.bio == bio
     assert user_metadata.twitter == twitter
@@ -519,7 +518,7 @@ def test_profile_session_active_state(client, ct_same_username_and_password):
 
 def test_image_resize(image):
     img_out = '{}.jpg'.format(tempfile.mktemp())
-    app.views.image_resize(image, img_out, size=800)
+    views.image_resize(image, img_out, size=800)
     rv = Image.open(img_out)
 
     assert rv.size == (800, 800)
@@ -530,7 +529,7 @@ def test_image_resize(image):
 
 def test_create_thumbnail(image):
     img_out = '{}.jpg'.format(tempfile.mktemp())
-    app.views.create_thumbnail(image, img_out)
+    views.create_thumbnail(image, img_out)
     rv = Image.open(img_out)
 
     assert rv.size == (150, 150)
@@ -539,10 +538,10 @@ def test_create_thumbnail(image):
 
 
 def test_save_image(client, image):
-    test_user = app.app.config['TEST_USER'][1]
-    rv = app.views.save_image(image,
-                              request_path='test',
-                              user_id=test_user['id'])
+    test_user = APP.config['TEST_USER'][1]
+    rv = views.save_image(image,
+                          request_path='test',
+                          user_id=test_user['id'])
 
     # returns a uuid
     assert rv
@@ -550,10 +549,10 @@ def test_save_image(client, image):
     # file list with resized image and thumbnail in it
     assert '{}.jpg'.format(rv) \
         and '{}-thumb.jpg'.format(rv) \
-        in os.listdir(app.app.config['UPLOAD_FOLDER'])
+        in os.listdir(APP.config['UPLOAD_FOLDER'])
 
     # checks db entries
-    image = app.models.Image.query.first()
+    image = models.Image.query.first()
 
     assert image.user_id == test_user['id']
     assert image.upload_to == 'test'
@@ -582,8 +581,8 @@ def test_mailing():
     subject = 'Testsubject'
     body = 'Testbody'
 
-    with app.app.app_context():
-        with app.mail.record_messages() as outbox:
+    with APP.app_context():
+        with MAIL.record_messages() as outbox:
             mailing.send_email(sender=sender,
                                subject=subject,
                                recipients=recipients,
@@ -598,12 +597,12 @@ def test_mailing():
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_get_recipients(test_user):
     # profile
-    rv = app.views.get_recipients('profile', test_user['id'])
+    rv = views.get_recipients('profile', test_user['id'])
 
     assert rv == [test_user['email']]
 
     # group
-    rv = app.views.get_recipients('group', 1)
+    rv = views.get_recipients('group', 1)
     assert rv == ['test.leiter@ecclesianuernberg.de', 'xsteadfastx@gmail.com']
 
 
@@ -627,7 +626,7 @@ def test_mail(client, test_user):
     subject = 'Testsubject'
     body = 'Testbody'
 
-    with app.mail.record_messages() as outbox:
+    with MAIL.record_messages() as outbox:
         login(client, test_user['email'], test_user['password'])
         rv = send_mail(client, '/mail/profile/{}'.format(test_user['id']),
                        'Testsubject', 'Testbody')
@@ -651,7 +650,7 @@ def test_whatsup_overview(client, test_user):
     add_whatsup_post(client, 'subject1', 'body1')
 
     with pytest.raises(NotFound):
-        app.models.get_whatsup_post(1)
+        models.get_whatsup_post(1)
 
     # logged in
     login(client, test_user['email'], test_user['password'])
@@ -665,7 +664,7 @@ def test_whatsup_overview(client, test_user):
     assert 'Post abgeschickt!' in rv.data
 
     # database entries
-    rv = app.models.get_whatsup_post(1)
+    rv = models.get_whatsup_post(1)
     assert rv.user_id == test_user['id']
     assert rv.subject == 'subject1'
     assert rv.body == 'body1'
@@ -679,7 +678,7 @@ def test_whatsup_overview(client, test_user):
     add_whatsup_post(client, 'subject4', 'body4')
 
     # checks if its 4 db entries
-    assert len(app.models.WhatsUp.query.all()) == 4
+    assert len(models.WhatsUp.query.all()) == 4
 
     # checking the order of posts on overview UNVOTED
     rv = client.get('/whatsup')
@@ -705,7 +704,7 @@ def test_whatsup_overview(client, test_user):
     add_whatsup_upvote(client, 1)
 
     # upvotes entries stayed 1
-    assert len(app.models.get_whatsup_post(1).upvotes) == 1
+    assert len(models.get_whatsup_post(1).upvotes) == 1
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -717,7 +716,7 @@ def test_whatsup_overview_new(client, test_user):
     add_whatsup_post(client, 'subject1', 'body1')
 
     with pytest.raises(NotFound):
-        app.models.get_whatsup_post(1)
+        models.get_whatsup_post(1)
 
     # logged in
     login(client, test_user['email'], test_user['password'])
@@ -731,7 +730,7 @@ def test_whatsup_overview_new(client, test_user):
     assert 'Post abgeschickt!' in rv.data
 
     # database entries
-    rv = app.models.get_whatsup_post(1)
+    rv = models.get_whatsup_post(1)
     assert rv.user_id == test_user['id']
     assert rv.subject == 'subject1'
     assert rv.body == 'body1'
@@ -745,7 +744,7 @@ def test_whatsup_overview_new(client, test_user):
     add_whatsup_post(client, 'subject4', 'body4', url='/whatsup/new')
 
     # checks if its 4 db entries
-    assert len(app.models.WhatsUp.query.all()) == 4
+    assert len(models.WhatsUp.query.all()) == 4
 
     # checking the order of posts on overview UNVOTED
     rv = client.get('/whatsup/new')
@@ -772,13 +771,13 @@ def test_whatsup_overview_new(client, test_user):
     add_whatsup_upvote(client, 1)
 
     # upvotes entries stayed 1
-    assert len(app.models.get_whatsup_post(1).upvotes) == 1
+    assert len(models.get_whatsup_post(1).upvotes) == 1
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
 def test_whatsup_post(client, test_user):
-    with app.app.app_context():
-        with app.mail.record_messages() as outbox:
+    with APP.app_context():
+        with MAIL.record_messages() as outbox:
             # add post
             login(client, test_user['email'], test_user['password'])
             add_whatsup_post(client, 'subject', 'body')
@@ -799,7 +798,7 @@ def test_whatsup_post(client, test_user):
             assert 'Kommentar abgeschickt!' in rv.data
 
             # database entries
-            rv = app.models.get_whatsup_post(1)
+            rv = models.get_whatsup_post(1)
 
             assert rv.comments[0].body == 'cömment1'.decode('utf-8')
             assert rv.comments[0].post_id == 1
@@ -813,7 +812,7 @@ def test_whatsup_post(client, test_user):
             sleep(1)
             add_whatsup_comment(client, 1, 'comment4')
 
-            assert len(app.models.get_whatsup_post(1).comments) == 4
+            assert len(models.get_whatsup_post(1).comments) == 4
 
             # create soup
             rv = client.get('/whatsup/1')
@@ -1050,7 +1049,7 @@ def test_edit_index(client, image):
                     'http://drei.com', 'http://vier.com')
 
     # check db
-    rv = app.models.FrontPage.query.all()[-1]
+    rv = models.FrontPage.query.all()[-1]
 
     assert rv.first_row_image is not None
     assert rv.first_row_link == 'http://eins.com'
@@ -1143,27 +1142,27 @@ def test_search_whatsup(client, clean_whoosh_index):
     add_whatsup_comment(client, 1, 'zweiter kommentar')
 
     # search for erstes subject
-    rv = app.models.search_whatsup_posts('erstes')
+    rv = models.search_whatsup_posts('erstes')
 
     assert len(rv) == 1
     assert rv[0].subject == 'erstes subject'
     assert rv[0].body == 'erster body'
 
-    rv = app.models.search_whatsup_posts('erstes subject')
+    rv = models.search_whatsup_posts('erstes subject')
 
     assert len(rv) == 1
     assert rv[0].subject == 'erstes subject'
     assert rv[0].body == 'erster body'
 
     # search for erster body
-    rv = app.models.search_whatsup_posts('erster body')
+    rv = models.search_whatsup_posts('erster body')
 
     assert len(rv) == 1
     assert rv[0].subject == 'erstes subject'
     assert rv[0].body == 'erster body'
 
     # search for the word subject
-    rv = [i.subject for i in app.models.search_whatsup_posts('subject')]
+    rv = [i.subject for i in models.search_whatsup_posts('subject')]
 
     assert len(rv) == 3
     assert 'erstes subject' in rv
@@ -1171,7 +1170,7 @@ def test_search_whatsup(client, clean_whoosh_index):
     assert 'drittes subject' in rv
 
     # search for the word body
-    rv = [i.subject for i in app.models.search_whatsup_posts('body')]
+    rv = [i.subject for i in models.search_whatsup_posts('body')]
 
     assert len(rv) == 3
     assert 'erstes subject' in rv
@@ -1179,7 +1178,7 @@ def test_search_whatsup(client, clean_whoosh_index):
     assert 'drittes subject' in rv
 
     # search for comment
-    rv = app.models.search_whatsup_comments('erster')
+    rv = models.search_whatsup_comments('erster')
 
     assert len(rv) == 1
     assert rv[0].body == 'erster kommentar'

@@ -1,4 +1,4 @@
-from app import app, basic_auth, ct_connect
+from app import APP, BASIC_AUTH, ct_connect
 from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
@@ -46,7 +46,7 @@ class CTUser(UserMixin):
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
+        s = Serializer(APP.config['SECRET_KEY'])
         try:
             data = s.loads(token)
 
@@ -63,7 +63,7 @@ class CTUser(UserMixin):
 
 
 def generate_auth_token(user, expiration=600):
-    s = Serializer(app.config['SECRET_KEY'], expires_in=expiration)
+    s = Serializer(APP.config['SECRET_KEY'], expires_in=expiration)
     return s.dumps({'id': user['email']})
 
 
@@ -73,7 +73,7 @@ def get_valid_users(user, password):
             if bcrypt.verify(password, person['password'])]
 
 
-@basic_auth.verify_password
+@BASIC_AUTH.verify_password
 def verify_password(email_or_token, password):
     ''' basic auth used for api '''
     # check if its a token and if its right
@@ -257,14 +257,14 @@ def active_user():
 
 
 def generate_feed_auth(user):
-    s = URLSafeSerializer(app.config['SECRET_KEY'],
-                          salt=app.config['FEED_SALT'])
+    s = URLSafeSerializer(APP.config['SECRET_KEY'],
+                          salt=APP.config['FEED_SALT'])
     return s.dumps({'id': user['email']})
 
 
 def feed_auth_or_401(token):
-    s = URLSafeSerializer(app.config['SECRET_KEY'],
-                          salt=app.config['FEED_SALT'])
+    s = URLSafeSerializer(APP.config['SECRET_KEY'],
+                          salt=APP.config['FEED_SALT'])
     try:
         s.loads(token)
     except:

@@ -5,10 +5,10 @@ import flask_whooshalchemy
 
 # set FLASK_CONFIG environment variable and import app
 os.environ['FLASK_CONFIG'] = 'development'
-from app import app, models
+from app import APP, models
 
-server = Server(host=app.config['HOST'])
-manager = Manager(app)
+server = Server(host=APP.config['HOST'])
+manager = Manager(APP)
 
 manager.add_command('runserver', server)
 manager.add_command('db', MigrateCommand)
@@ -21,7 +21,7 @@ def whoosh_rebuild():
     def rebuild_index(model):
         primary_field = model.pure_whoosh.primary_key_name
         searchables = model.__searchable__
-        index_writer = flask_whooshalchemy.whoosh_index(app, model)
+        index_writer = flask_whooshalchemy.whoosh_index(APP, model)
 
         entries = model.query.all()
 

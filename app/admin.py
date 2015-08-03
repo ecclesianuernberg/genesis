@@ -1,4 +1,4 @@
-from app import app, db
+from app import APP, DB
 from flask.ext.login import current_user
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.sqla import ModelView
@@ -19,13 +19,13 @@ class MyView(ModelView):
             False
 
 
-admin = Admin(app)
-admin.add_view(MyView(models.FrontPage, db.session))
-admin.add_view(MyView(models.News, db.session))
-admin.add_view(MyView(models.GroupMetadata, db.session))
-admin.add_view(MyView(models.UserMetadata, db.session))
-admin.add_view(MyView(models.Image, db.session))
-admin.add_view(MyView(models.Prayer, db.session))
-admin.add_view(MyView(models.WhatsUp, db.session))
-admin.add_view(MyView(models.WhatsUpComment, db.session))
-admin.add_view(MyView(models.WhatsUpUpvote, db.session))
+admin = Admin(APP)
+admin.add_view(MyView(models.FrontPage, DB.session))
+admin.add_view(MyView(models.News, DB.session))
+admin.add_view(MyView(models.GroupMetadata, DB.session))
+admin.add_view(MyView(models.UserMetadata, DB.session))
+admin.add_view(MyView(models.Image, DB.session))
+admin.add_view(MyView(models.Prayer, DB.session))
+admin.add_view(MyView(models.WhatsUp, DB.session))
+admin.add_view(MyView(models.WhatsUpComment, DB.session))
+admin.add_view(MyView(models.WhatsUpUpvote, DB.session))

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import pytest
-import app
-from app import ct_connect
+from app import APP, ct_connect
 from datetime import datetime
 from passlib.hash import bcrypt
 
 
 # get test user
-TEST_USER = app.app.config['TEST_USER']
+TEST_USER = APP.config['TEST_USER']
 
 
 @pytest.mark.parametrize('test_user', TEST_USER[1:3])

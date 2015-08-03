@@ -1,4 +1,4 @@
-from app import app, db, ct_connect
+from app import APP, DB, ct_connect
 from flask import session
 from sqlalchemy import func
 import flask.ext.whooshalchemy as whooshalchemy
@@ -6,14 +6,14 @@ import random
 import datetime
 
 
-class News(db.Model):
+class News(DB.Model):
     __tablename__ = 'news'
 
-    id = db.Column(db.Integer, primary_key=True)
-    author_id = db.Column(db.Integer)
-    title = db.Column(db.String(120))
-    body = db.Column(db.String(700))
-    pub_date = db.Column(db.DateTime())
+    id = DB.Column(DB.Integer, primary_key=True)
+    author_id = DB.Column(DB.Integer)
+    title = DB.Column(DB.String(120))
+    body = DB.Column(DB.String(700))
+    pub_date = DB.Column(DB.DateTime())
 
     def __init__(self, pub_date=None):
         if pub_date is None:
@@ -26,30 +26,30 @@ class News(db.Model):
         return self.title
 
 
-class FrontPage(db.Model):
+class FrontPage(DB.Model):
     __tablename__ = 'frontpage'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = DB.Column(DB.Integer, primary_key=True)
 
-    first_row_image = db.Column(db.String(120))
-    first_row_link = db.Column(db.String(120))
+    first_row_image = DB.Column(DB.String(120))
+    first_row_link = DB.Column(DB.String(120))
 
-    second_row_image = db.Column(db.String(120))
-    second_row_link = db.Column(db.String(120))
+    second_row_image = DB.Column(DB.String(120))
+    second_row_link = DB.Column(DB.String(120))
 
-    third_row_left_image = db.Column(db.String(120))
-    third_row_left_link = db.Column(db.String(120))
+    third_row_left_image = DB.Column(DB.String(120))
+    third_row_left_link = DB.Column(DB.String(120))
 
-    third_row_right_image = db.Column(db.String(120))
-    third_row_right_link = db.Column(db.String(120))
+    third_row_right_image = DB.Column(DB.String(120))
+    third_row_right_link = DB.Column(DB.String(120))
 
 
-class GroupMetadata(db.Model):
+class GroupMetadata(DB.Model):
     __tablename__ = 'group_metadata'
 
-    ct_id = db.Column(db.Integer, primary_key=True)
-    avatar_id = db.Column(db.String(120))
-    description = db.Column(db.String(700))
+    ct_id = DB.Column(DB.Integer, primary_key=True)
+    avatar_id = DB.Column(DB.String(120))
+    description = DB.Column(DB.String(700))
 
     def __init__(self, ct_id):
         self.ct_id = ct_id
@@ -67,19 +67,19 @@ class GroupMetadata(db.Model):
             return ct_connect.get_group(ct_session, self.ct_id)[0]
 
 
-class UserMetadata(db.Model):
+class UserMetadata(DB.Model):
     __tablename__ = 'user_metadata'
 
-    ct_id = db.Column(db.Integer, primary_key=True)
-    avatar_id = db.Column(db.String(120))
-    bio = db.Column(db.String(700))
-    twitter = db.Column(db.String(120))
-    facebook = db.Column(db.String(120))
-    images = db.relationship('Image', backref=db.backref('user'))
-    prayer = db.relationship('Prayer', backref=db.backref('user'))
-    posts = db.relationship('WhatsUp', backref=db.backref('user'))
-    comments = db.relationship('WhatsUpComment', backref=db.backref('user'))
-    upvotes = db.relationship('WhatsUpUpvote', backref=db.backref('user'))
+    ct_id = DB.Column(DB.Integer, primary_key=True)
+    avatar_id = DB.Column(DB.String(120))
+    bio = DB.Column(DB.String(700))
+    twitter = DB.Column(DB.String(120))
+    facebook = DB.Column(DB.String(120))
+    images = DB.relationship('Image', backref=DB.backref('user'))
+    prayer = DB.relationship('Prayer', backref=DB.backref('user'))
+    posts = DB.relationship('WhatsUp', backref=DB.backref('user'))
+    comments = DB.relationship('WhatsUpComment', backref=DB.backref('user'))
+    upvotes = DB.relationship('WhatsUpUpvote', backref=DB.backref('user'))
 
     def __init__(self, ct_id):
         self.ct_id = ct_id
@@ -95,13 +95,13 @@ class UserMetadata(db.Model):
         return ct_connect.get_person_from_id(ct_session, self.ct_id)[0]
 
 
-class Image(db.Model):
+class Image(DB.Model):
     __tablename__ = 'images'
 
-    uuid = db.Column(db.String(120), primary_key=True)
-    upload_date = db.Column(db.DateTime())
-    upload_to = db.Column(db.String(120))
-    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
+    uuid = DB.Column(DB.String(120), primary_key=True)
+    upload_date = DB.Column(DB.DateTime())
+    upload_to = DB.Column(DB.String(120))
+    user_id = DB.Column(DB.Integer, DB.ForeignKey('user_metadata.ct_id'))
 
     def __init__(self, uuid, upload_date, upload_to, user_id):
         self.uuid = uuid
@@ -116,15 +116,15 @@ class Image(db.Model):
         return unicode(self.uuid)
 
 
-class Prayer(db.Model):
+class Prayer(DB.Model):
     __tablename__ = 'prayers'
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
-    name = db.Column(db.String(120))
-    active = db.Column(db.Boolean())
-    pub_date = db.Column(db.DateTime())
-    body = db.Column(db.String(700))
+    id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(DB.Integer, DB.ForeignKey('user_metadata.ct_id'))
+    name = DB.Column(DB.String(120))
+    active = DB.Column(DB.Boolean())
+    pub_date = DB.Column(DB.DateTime())
+    body = DB.Column(DB.String(700))
 
     def __init__(self, user_id, name, active, pub_date, body):
         self.user_id = user_id
@@ -137,20 +137,20 @@ class Prayer(db.Model):
         return '<Prayer: user=%r, pub_date=%r>' % (self.user_id, self.pub_date)
 
 
-class WhatsUp(db.Model):
+class WhatsUp(DB.Model):
     __tablename__ = 'whatsup'
     __searchable__ = ['subject', 'body']
 
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
-    pub_date = db.Column(db.DateTime())
-    active = db.Column(db.DateTime())
-    subject = db.Column(db.String(120))
-    body = db.Column(db.String(700))
-    comments = db.relationship('WhatsUpComment',
-                               backref=db.backref('post'),
+    id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(DB.Integer, DB.ForeignKey('user_metadata.ct_id'))
+    pub_date = DB.Column(DB.DateTime())
+    active = DB.Column(DB.DateTime())
+    subject = DB.Column(DB.String(120))
+    body = DB.Column(DB.String(700))
+    comments = DB.relationship('WhatsUpComment',
+                               backref=DB.backref('post'),
                                order_by='desc(WhatsUpComment.pub_date)')
-    upvotes = db.relationship('WhatsUpUpvote', backref=db.backref('post'))
+    upvotes = DB.relationship('WhatsUpUpvote', backref=DB.backref('post'))
 
     def __repr__(self):
         return '<WhatsUp: user=%r, pub_date=%r, subject=%r>' % (self.user_id,
@@ -176,15 +176,15 @@ class WhatsUp(db.Model):
             return False
 
 
-class WhatsUpComment(db.Model):
+class WhatsUpComment(DB.Model):
     __tablename__ = 'whatsup_comments'
     __searchable__ = ['body']
 
-    id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey('whatsup.id'))
-    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
-    pub_date = db.Column(db.DateTime())
-    body = db.Column(db.String(700))
+    id = DB.Column(DB.Integer, primary_key=True)
+    post_id = DB.Column(DB.Integer, DB.ForeignKey('whatsup.id'))
+    user_id = DB.Column(DB.Integer, DB.ForeignKey('user_metadata.ct_id'))
+    pub_date = DB.Column(DB.DateTime())
+    body = DB.Column(DB.String(700))
 
     def __init__(self, post_id, user_id, pub_date, body):
         self.post_id = post_id
@@ -198,12 +198,12 @@ class WhatsUpComment(db.Model):
         )
 
 
-class WhatsUpUpvote(db.Model):
+class WhatsUpUpvote(DB.Model):
     __tablename__ = 'whatsup_upvotes'
 
-    id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey('whatsup.id'))
-    user_id = db.Column(db.Integer, db.ForeignKey('user_metadata.ct_id'))
+    id = DB.Column(DB.Integer, primary_key=True)
+    post_id = DB.Column(DB.Integer, DB.ForeignKey('whatsup.id'))
+    user_id = DB.Column(DB.Integer, DB.ForeignKey('user_metadata.ct_id'))
 
     def __init__(self, post_id, user_id):
         self.post_id = post_id
@@ -277,5 +277,5 @@ def search_whatsup_comments(query):
     return WhatsUpComment.query.whoosh_search(query).all()
 
 # whoosh index stuff
-whooshalchemy.whoosh_index(app, WhatsUp)
-whooshalchemy.whoosh_index(app, WhatsUpComment)
+whooshalchemy.whoosh_index(APP, WhatsUp)
+whooshalchemy.whoosh_index(APP, WhatsUpComment)

@@ -1,4 +1,4 @@
-from app import app, api, auth, basic_auth, db, ct_connect, models
+from app import APP, API, auth, BASIC_AUTH, DB, ct_connect, models
 from app.views import save_image
 from auth import prayer_owner, generate_auth_token, own_group, own_profile
 from datetime import datetime
@@ -27,8 +27,8 @@ def prayer_fields(endpoint):
     }
 
 
-@app.route('/api/token')
-@basic_auth.login_required
+@APP.route('/api/token')
+@BASIC_AUTH.login_required
 def get_auth_token():
     token = generate_auth_token(g.user)
     return jsonify({'token': token.decode('ascii')})
@@ -54,7 +54,7 @@ class PrayerAPI(Resource):
 
         super(PrayerAPI, self).__init__()
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @marshal_with(prayer_fields('prayerapi'))
     def get(self):
         prayer = get_random_prayer()
@@ -67,7 +67,7 @@ class PrayerAPI(Resource):
                             id=prayer.id,
                             pub_date=prayer.pub_date)
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @marshal_with(prayer_fields('prayerapi'))
     def post(self):
         args = self.reqparse.parse_args()
@@ -77,8 +77,8 @@ class PrayerAPI(Resource):
 
         if not user_metadata:
             metadata = models.UserMetadata(g.user['id'])
-            db.session.add(metadata)
-            db.session.commit()
+            DB.session.add(metadata)
+            DB.session.commit()
 
         prayer = models.Prayer(user_id=g.user['id'],
                                name=args['name'],
@@ -86,8 +86,8 @@ class PrayerAPI(Resource):
                                pub_date=datetime.utcnow(),
                                body=args['body'])
 
-        db.session.add(prayer)
-        db.session.commit()
+        DB.session.add(prayer)
+        DB.session.commit()
 
         return PrayerObject(prayer=prayer.body,
                             name=prayer.name,
@@ -104,7 +104,7 @@ class PrayerAPIEdit(Resource):
 
         super(PrayerAPIEdit, self).__init__()
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @prayer_owner
     @marshal_with(prayer_fields('prayerapiedit'))
     def put(self, id):
@@ -120,21 +120,21 @@ class PrayerAPIEdit(Resource):
         if args['name'] is not None:
             prayer.name = args['name']
 
-        db.session.commit()
+        DB.session.commit()
 
         return PrayerObject(prayer=prayer.body,
                             name=prayer.name,
                             id=prayer.id,
                             pub_date=prayer.pub_date)
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @prayer_owner
     def delete(self, id):
         prayer = get_prayer(id)
 
         if prayer:
-            db.session.delete(prayer)
-            db.session.commit()
+            DB.session.delete(prayer)
+            DB.session.commit()
 
             return '', 204
         else:
@@ -250,7 +250,7 @@ class GroupAPIItem(Resource):
             'avatar', type=werkzeug.datastructures.FileStorage,
             location='files')
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @marshal_with(group_fields('groupapiitem'), envelope='group')
     def get(self, id):
         with ct_connect.session_scope() as ct_session:
@@ -262,7 +262,7 @@ class GroupAPIItem(Resource):
 
             return GroupObject(ct=group, metadata=group_metadata)
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @own_group
     @marshal_with(group_fields('groupapiitem'), envelope='group')
     def put(self, id):
@@ -278,7 +278,7 @@ class GroupAPIItem(Resource):
 
             if not group_metadata:
                 group_metadata = models.GroupMetadata(ct_id=id)
-                db.session.add(group_metadata)
+                DB.session.add(group_metadata)
 
             if args['description'] is not None:
                 group_metadata.description = args['description']
@@ -307,7 +307,7 @@ class GroupAPIItem(Resource):
                 group.zielgruppe = args['zielgruppe']
 
             # saving everything
-            db.session.commit()
+            DB.session.commit()
             ct_session.add(group)
             ct_session.commit()
 
@@ -376,7 +376,7 @@ class ProfileAPI(Resource):
             'avatar', type=werkzeug.datastructures.FileStorage,
             location='files')
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @marshal_with(profile_fields('profileapi'), envelope='profile')
     def get(self, id):
         with ct_connect.session_scope() as ct_session:
@@ -396,7 +396,7 @@ class ProfileAPI(Resource):
             return ProfileObject(ct=user, metadata=user_metadata,
                                  own_profile=own_profile)
 
-    @basic_auth.login_required
+    @BASIC_AUTH.login_required
     @own_profile
     @marshal_with(profile_fields('profileapi'), envelope='profile')
     def put(self, id):
@@ -411,7 +411,7 @@ class ProfileAPI(Resource):
             user_metadata = models.get_user_metadata(id)
             if not user_metadata:
                 user_metadata = models.UserMetadata(ct_id=id)
-                db.session.add(user_metadata)
+                DB.session.add(user_metadata)
 
             if args['bio'] is not None:
                 user_metadata.bio = args['bio']
@@ -446,7 +446,7 @@ class ProfileAPI(Resource):
                 user[0].ort = args['city']
 
             # saving everything
-            db.session.commit()
+            DB.session.commit()
             ct_session.add(user[0])
             ct_session.commit()
 
@@ -454,8 +454,8 @@ class ProfileAPI(Resource):
                                  own_profile=True)
 
 
-api.add_resource(PrayerAPI, '/api/prayer')
-api.add_resource(PrayerAPIEdit, '/api/prayer/<int:id>')
-api.add_resource(GroupAPIOverview, '/api/groups')
-api.add_resource(GroupAPIItem, '/api/group/<int:id>')
-api.add_resource(ProfileAPI, '/api/profile/<int:id>')
+API.add_resource(PrayerAPI, '/api/prayer')
+API.add_resource(PrayerAPIEdit, '/api/prayer/<int:id>')
+API.add_resource(GroupAPIOverview, '/api/groups')
+API.add_resource(GroupAPIItem, '/api/group/<int:id>')
+API.add_resource(ProfileAPI, '/api/profile/<int:id>')

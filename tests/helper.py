@@ -1,12 +1,11 @@
-from app import ct_connect
+from app import APP, ct_connect
 from random import choice
 import base64
 import json
-import app
 
 
 # get test user
-TEST_USER = app.app.config['TEST_USER']
+TEST_USER = APP.config['TEST_USER']
 
 
 def get_wrong_user_id(own_id):

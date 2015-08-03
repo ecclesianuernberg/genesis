@@ -12,66 +12,66 @@ from flask_mail import Mail
 from config import config
 import os
 
-app = Flask(__name__)
+APP = Flask(__name__)
 
 # config handling
 if os.getenv('FLASK_CONFIG'):
-    flask_config = os.getenv('FLASK_CONFIG')
+    FLASK_CONFIG = os.getenv('FLASK_CONFIG')
 else:
-    flask_config = 'default'
+    FLASK_CONFIG = 'default'
 
-app.config.from_object(config[flask_config])
+APP.config.from_object(config[FLASK_CONFIG])
 
 # logging
-if not app.debug and not app.testing:
+if not APP.debug and not APP.testing:
     import logging
     from logging.handlers import RotatingFileHandler
 
-    file_handler = RotatingFileHandler('/var/log/genesis/genesis.log')
-    file_handler.setLevel(logging.DEBUG)
+    FILE_HANDLER = RotatingFileHandler('/var/log/genesis/genesis.log')
+    FILE_HANDLER.setLevel(logging.DEBUG)
 
-    file_handler.setFormatter(
+    FILE_HANDLER.setFormatter(
         logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
                           '[in %(pathname)s:%(lineno)d]'))
 
-    app.logger.addHandler(file_handler)
+    APP.logger.addHandler(FILE_HANDLER)
 
 # Bootstrap
-Bootstrap(app)
-app.extensions['bootstrap']['cdns']['jquery'] = WebCDN(
+Bootstrap(APP)
+APP.extensions['bootstrap']['cdns']['jquery'] = WebCDN(
     '//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/')
 
 # Misaka Markdown
-Misaka(app)
+Misaka(APP)
 
 # Moment.js
-moment = Moment(app)
+MOMENT = Moment(APP)
 
 # SQL stuff
-db = SQLAlchemy(app)
+DB = SQLAlchemy(APP)
 
 # Migrate
-migrate = Migrate(app, db)
+MIGRATE = Migrate(APP, DB)
 
 # PageDown Editor
-pagedown = PageDown(app)
+PAGEDOWN = PageDown(APP)
 
 # Mail
-mail = Mail(app)
+MAIL = Mail(APP)
 
 # REST API
-api = Api(app)
+API = Api(APP)
 
 # HTTPAuth
-basic_auth = HTTPBasicAuth()
+BASIC_AUTH = HTTPBasicAuth()
 
 # Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+LOGIN_MANAGER = LoginManager()
+LOGIN_MANAGER.init_app(APP)
+LOGIN_MANAGER.login_view = 'login'
 
 
-@login_manager.user_loader
+@LOGIN_MANAGER.user_loader
 def load_user(userid):
     import auth
     return auth.CTUser(uid=userid)

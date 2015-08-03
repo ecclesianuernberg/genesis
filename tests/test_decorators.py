@@ -2,18 +2,18 @@
 from flask.ext.login import login_required
 from flask.ext.restful import Resource, Api
 from helper import login, create_api_creds, get_auth_api
-import app
+from app import APP, BASIC_AUTH, auth
 import json
 
 
 # get test user
-TEST_USER = app.app.config['TEST_USER']
+TEST_USER = APP.config['TEST_USER']
 
 
 def test_valid_users_and_groups(client):
-    @app.app.route('/test')
+    @APP.route('/test')
     @login_required
-    @app.auth.valid_groups_and_users(users=[163], groups=[1])
+    @auth.valid_groups_and_users(users=[163], groups=[1])
     def view():
         return 'access'
 
@@ -40,11 +40,11 @@ def test_valid_users_and_groups(client):
 
 
 def test_valid_users_and_groups_api(client):
-    api = Api(app.app)
+    api = Api(APP)
 
     class TestAPI(Resource):
-        @app.basic_auth.login_required
-        @app.auth.valid_groups_and_users(users=[163], groups=[1])
+        @BASIC_AUTH.login_required
+        @auth.valid_groups_and_users(users=[163], groups=[1])
         def get(self):
             return {'return': 'access'}
 

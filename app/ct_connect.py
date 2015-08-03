@@ -1,4 +1,4 @@
-from app import app
+from app import APP
 from sqlalchemy import (create_engine, MetaData, Table, exc, event, or_, and_)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import Pool
@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from contextlib import contextmanager
 from passlib.hash import bcrypt
 
-URI = app.config['SQLALCHEMY_CT_DATABASE_URI']
+URI = APP.config['SQLALCHEMY_CT_DATABASE_URI']
 BASE = declarative_base()
 ENGINE = create_engine(URI, echo=False, pool_recycle=3600)
 METADATA = MetaData(bind=ENGINE)

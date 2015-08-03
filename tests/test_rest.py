@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import pytest
-import app
 import json
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
-from app import ct_connect
+from app import APP, ct_connect, models
 from helper import (create_api_creds, get_api_token, add_prayer_api,
                     edit_prayer_api, del_prayer_api, get_prayer_api,
                     get_group_overview_api, get_group_item_api,
@@ -12,7 +11,7 @@ from helper import (create_api_creds, get_api_token, add_prayer_api,
 
 
 # get test user
-TEST_USER = app.app.config['TEST_USER']
+TEST_USER = APP.config['TEST_USER']
 
 
 @pytest.mark.parametrize('test_user', TEST_USER)
@@ -24,7 +23,7 @@ def test_token(client, test_user):
     assert rv.status_code == 200
 
     token = json.loads(rv.data)['token']
-    s = Serializer(app.app.config['SECRET_KEY'])
+    s = Serializer(APP.config['SECRET_KEY'])
 
     assert s.loads(token)['id'] == test_user['email']
 
@@ -60,7 +59,7 @@ def test_add_prayer(client, test_user):
     assert rv.status_code == 401
 
     # check db entry
-    db_entry = app.models.get_prayer(1)
+    db_entry = models.get_prayer(1)
     assert db_entry.id == 1
     assert db_entry.body == body
     assert db_entry.user_id == test_user['id']
@@ -186,7 +185,7 @@ def test_group_overview_authorized(client, test_user):
 
         for group in json.loads(rv.data)['groups']:
             group_ct = ct_connect.get_group(ct_session, group['id'])
-            group_metadata = app.models.get_group_metadata(group['id'])
+            group_metadata = models.get_group_metadata(group['id'])
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
             assert group['id'] == group_ct.id
@@ -215,7 +214,7 @@ def test_group_overview_unauthorized(client):
 
         for group in json.loads(rv.data)['groups']:
             group_ct = ct_connect.get_group(ct_session, group['id'])
-            group_metadata = app.models.get_group_metadata(group['id'])
+            group_metadata = models.get_group_metadata(group['id'])
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
             assert group['id'] == group_ct.id
@@ -247,7 +246,7 @@ def test_group_overview_wrong_password(client):
 
         for group in json.loads(rv.data)['groups']:
             group_ct = ct_connect.get_group(ct_session, group['id'])
-            group_metadata = app.models.get_group_metadata(group['id'])
+            group_metadata = models.get_group_metadata(group['id'])
 
             assert group['name'] == group_ct.bezeichnung.split(' - ')[-1]
             assert group['id'] == group_ct.id
@@ -290,7 +289,7 @@ def test_get_group_item(client, test_user):
 
     with ct_connect.session_scope() as ct_session:
         group_ct = ct_connect.get_group(ct_session, 1)
-        group_metadata = app.models.get_group_metadata(1)
+        group_metadata = models.get_group_metadata(1)
 
         assert rv_json['name'] == group_ct.bezeichnung.split(' - ')[-1]
         assert rv_json['id'] == group_ct.id

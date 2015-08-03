@@ -9,33 +9,32 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/../')
 
 os.environ['FLASK_CONFIG'] = 'testing'
-import app
 
-from app import ct_connect
+from app import APP, DB, ct_connect
 
 
 # get test user
-TEST_USER = app.app.config['TEST_USER']
+TEST_USER = APP.config['TEST_USER']
 
 
 @pytest.yield_fixture
 def db():
     ''' creates tables and drops them for every test '''
-    app.db.create_all()
+    DB.create_all()
 
     yield
 
-    app.db.session.commit()
-    app.db.drop_all()
+    DB.session.commit()
+    DB.drop_all()
 
 
 @pytest.yield_fixture
 def client(db):
     # create temp upload folder
     upload_dir = tempfile.mkdtemp()
-    app.app.config['UPLOAD_FOLDER'] = upload_dir
+    APP.config['UPLOAD_FOLDER'] = upload_dir
 
-    yield app.app.test_client()
+    yield APP.test_client()
 
     # delete temp upload folder
     shutil.rmtree(upload_dir)
@@ -191,7 +190,7 @@ def ct_same_username_and_password(request):
 @pytest.yield_fixture
 def clean_whoosh_index():
     whoosh_base = tempfile.mkdtemp()
-    app.app.config['WHOOSH_BASE'] = whoosh_base
+    APP.config['WHOOSH_BASE'] = whoosh_base
 
     yield
 

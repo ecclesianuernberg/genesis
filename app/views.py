@@ -1,4 +1,4 @@
-from app import app, db, forms, models, auth, ct_connect, mailing
+from app import APP, DB, forms, models, auth, ct_connect, mailing
 from urlparse import urljoin
 from PIL import Image, ImageOps
 from passlib.hash import bcrypt
@@ -40,16 +40,16 @@ def save_image(image, request_path, user_id):
 
         # resize image and save it to upload folder
         image_resize(image,
-                     os.path.join(app.root_path, app.config['UPLOAD_FOLDER'],
+                     os.path.join(APP.root_path, APP.config['UPLOAD_FOLDER'],
                                   image_uuid + '.jpg'),
                      size=800)
 
         # create thumbnail
-        create_thumbnail(os.path.join(app.root_path,
-                                      app.config['UPLOAD_FOLDER'],
+        create_thumbnail(os.path.join(APP.root_path,
+                                      APP.config['UPLOAD_FOLDER'],
                                       image_uuid + '.jpg'),
-                         os.path.join(app.root_path,
-                                      app.config['UPLOAD_FOLDER'],
+                         os.path.join(APP.root_path,
+                                      APP.config['UPLOAD_FOLDER'],
                                       image_uuid + '-thumb.jpg'))
 
         # check if user_metadata exists
@@ -57,7 +57,7 @@ def save_image(image, request_path, user_id):
 
         if not user_metadata:
             metadata = models.UserMetadata(user_id)
-            db.session.add(metadata)
+            DB.session.add(metadata)
 
         # generate image db entry
         image = models.Image(uuid=image_uuid,
@@ -65,8 +65,8 @@ def save_image(image, request_path, user_id):
                              upload_to=request_path,
                              user_id=user_id)
 
-        db.session.add(image)
-        db.session.commit()
+        DB.session.add(image)
+        DB.session.commit()
 
         return image_uuid
 
@@ -74,20 +74,20 @@ def save_image(image, request_path, user_id):
         return None
 
 
-@app.errorhandler(500)
+@APP.errorhandler(500)
 def internal_error(error):
-    db.session.rollback()
+    DB.session.rollback()
     logout_user()
 
     return redirect(url_for('login'))
 
 
-@app.before_request
+@APP.before_request
 def before_request():
     g.search_form = forms.SearchForm()
 
 
-@app.route('/')
+@APP.route('/')
 @login_required
 def index():
     frontpage = models.FrontPage.query.all()[-1:]
@@ -100,7 +100,7 @@ def index():
         return render_template('index.html', frontpage=None)
 
 
-@app.route('/edit', methods=['GET', 'POST'])
+@APP.route('/edit', methods=['GET', 'POST'])
 @login_required
 @auth.valid_groups_and_users(users=[163], groups=[1])
 def index_edit():
@@ -108,7 +108,7 @@ def index_edit():
 
     if not frontpage:
         new_frontpage = models.FrontPage()
-        db.session.add(new_frontpage)
+        DB.session.add(new_frontpage)
 
         frontpage = models.FrontPage.query.all()[-1:]
 
@@ -157,8 +157,8 @@ def index_edit():
             if image:
                 frontpage.third_row_right_image = image
 
-            db.session.add(frontpage)
-            db.session.commit()
+            DB.session.add(frontpage)
+            DB.session.commit()
 
             flash('Index veraendert!', 'success')
             return redirect(url_for('index'))
@@ -170,7 +170,7 @@ def index_edit():
     return render_template('index_edit.html', form=form)
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@APP.route('/login', methods=['GET', 'POST'])
 def login():
     form = forms.LoginForm()
     if form.validate_on_submit():
@@ -207,19 +207,19 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route('/logout')
+@APP.route('/logout')
 def logout():
     logout_user()
     flash('Erfolgreich ausgeloggt!', 'success')
     return redirect(url_for('login'))
 
 
-@app.route('/news')
+@APP.route('/news')
 def news():
     pass
 
 
-@app.route('/groups')
+@APP.route('/groups')
 @login_required
 def groups():
     ''' groups overview '''
@@ -232,7 +232,7 @@ def groups():
                                groups_metadata=groups_metadata)
 
 
-@app.route('/group/<int:id>', methods=['GET', 'POST'])
+@APP.route('/group/<int:id>', methods=['GET', 'POST'])
 @login_required
 def group(id):
     ''' show group '''
@@ -260,7 +260,7 @@ def group(id):
         if group_edit:
             if not group_metadata:
                 group_metadata = models.GroupMetadata(ct_id=id)
-                db.session.add(group_metadata)
+                DB.session.add(group_metadata)
 
             # prefill form with db data
             form = forms.EditGroupForm(description=group_metadata.description,
@@ -283,7 +283,7 @@ def group(id):
                         group_metadata.avatar_id = group_image
 
                     # save to metadata db
-                    db.session.commit()
+                    DB.session.commit()
 
                     # churchtools
                     group.treffpunkt = form.where.data
@@ -310,7 +310,7 @@ def group(id):
                                mail_form=forms.MailForm())
 
 
-@app.route('/prayer')
+@APP.route('/prayer')
 @login_required
 def prayer():
     ''' show random prayer '''
@@ -319,7 +319,7 @@ def prayer():
     return render_template('prayer.html', random_prayer=random_prayer)
 
 
-@app.route('/prayer/add', methods=['GET', 'POST'])
+@APP.route('/prayer/add', methods=['GET', 'POST'])
 @login_required
 def prayer_add():
     form = forms.AddPrayerForm(active=True)
@@ -329,8 +329,8 @@ def prayer_add():
 
         if not user_metadata:
             metadata = models.UserMetadata(auth.active_user()['id'])
-            db.session.add(metadata)
-            db.session.commit()
+            DB.session.add(metadata)
+            DB.session.commit()
 
         prayer = models.Prayer(user_id=auth.active_user()['id'],
                                name=form.name.data,
@@ -338,14 +338,14 @@ def prayer_add():
                                pub_date=datetime.datetime.utcnow(),
                                body=form.body.data)
 
-        db.session.add(prayer)
-        db.session.commit()
+        DB.session.add(prayer)
+        DB.session.commit()
         flash('Gebetsanliegen abgeschickt!', 'success')
         return redirect(url_for('prayer_mine'))
     return render_template('prayer_add.html', form=form)
 
 
-@app.route('/prayer/mine', methods=['GET', 'POST'])
+@APP.route('/prayer/mine', methods=['GET', 'POST'])
 @login_required
 def prayer_mine():
     active_user = auth.active_user()
@@ -377,7 +377,7 @@ def prayer_mine():
                 prayer.name = edit_prayer_form.name.data
                 prayer.active = edit_prayer_form.active.data
 
-                db.session.commit()
+                DB.session.commit()
 
                 flash('Gebetsanliegen veraendert!', 'success')
                 return redirect(url_for('prayer_mine'))
@@ -391,15 +391,15 @@ def prayer_mine():
                            edit_forms=edit_forms)
 
 
-@app.route('/prayer/<int:id>/del')
+@APP.route('/prayer/<int:id>/del')
 @login_required
 @auth.prayer_owner
 def prayer_del(id):
     prayer = models.get_prayer(id)
 
     try:
-        db.session.delete(prayer)
-        db.session.commit()
+        DB.session.delete(prayer)
+        DB.session.commit()
         flash('Gebetsanliegen entfernt!', 'success')
         return redirect(url_for('prayer_mine'))
     except:
@@ -407,7 +407,7 @@ def prayer_del(id):
         return redirect(url_for('prayer_mine'))
 
 
-@app.route('/profile/<int:id>', methods=['GET', 'POST'])
+@APP.route('/profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 def profile(id):
     with ct_connect.session_scope() as ct_session:
@@ -448,7 +448,7 @@ def profile(id):
             # if there is no user_metadata db entry define it
             if not user_metadata:
                 user_metadata = models.UserMetadata(ct_id=id)
-                db.session.add(user_metadata)
+                DB.session.add(user_metadata)
 
             # try to prefill form
             form = forms.EditProfileForm(street=user[0].strasse,
@@ -476,8 +476,8 @@ def profile(id):
                     user_metadata.facebook = form.facebook.data
 
                     # save metadata to metadata db
-                    db.session.add(user_metadata)
-                    db.session.commit()
+                    DB.session.add(user_metadata)
+                    DB.session.commit()
 
                     # churchtools
                     user[0].strasse = form.street.data
@@ -520,7 +520,7 @@ def get_recipients(profile_or_group, id):
             return [i.email for i in group]
 
 
-@app.route('/mail/<profile_or_group>/<int:id>', methods=['GET', 'POST'])
+@APP.route('/mail/<profile_or_group>/<int:id>', methods=['GET', 'POST'])
 @login_required
 def mail(profile_or_group, id):
     if profile_or_group not in ('profile', 'group'):
@@ -552,7 +552,7 @@ def mail(profile_or_group, id):
     return render_template('mail.html', form=form)
 
 
-@app.route('/whatsup', methods=['GET', 'POST'])
+@APP.route('/whatsup', methods=['GET', 'POST'])
 @login_required
 def whatsup_overview():
     ''' overview with some metric about how many upvotes a post has '''
@@ -568,8 +568,8 @@ def whatsup_overview():
 
         if not user_metadata:
             metadata = models.UserMetadata(user_id)
-            db.session.add(metadata)
-            db.session.commit()
+            DB.session.add(metadata)
+            DB.session.commit()
 
         # create post
         new_post = models.WhatsUp(user_id=user_id,
@@ -578,8 +578,8 @@ def whatsup_overview():
                                   subject=form.subject.data,
                                   body=form.body.data)
 
-        db.session.add(new_post)
-        db.session.commit()
+        DB.session.add(new_post)
+        DB.session.commit()
 
         flash('Post abgeschickt!', 'success')
         return redirect(redirect_url(default='whatsup_overview'))
@@ -587,7 +587,7 @@ def whatsup_overview():
     # generate a feed auth token
     token = auth.generate_feed_auth(auth.active_user())
 
-    # ct_data needs a db session to access the ct database
+    # ct_data needs a DB.session to access the ct database
     with ct_connect.session_scope() as ct_session:
         return render_template('whatsup_overview.html',
                                posts=posts,
@@ -596,7 +596,7 @@ def whatsup_overview():
                                token=token)
 
 
-@app.route('/whatsup/new', methods=['GET', 'POST'])
+@APP.route('/whatsup/new', methods=['GET', 'POST'])
 @login_required
 def whatsup_overview_new():
     ''' ignore all upvotes. just show newest 20 posts '''
@@ -613,8 +613,8 @@ def whatsup_overview_new():
 
             if not user_metadata:
                 metadata = models.UserMetadata(user_id)
-                db.session.add(metadata)
-                db.session.commit()
+                DB.session.add(metadata)
+                DB.session.commit()
 
             # create post
             new_post = models.WhatsUp(user_id=user_id,
@@ -623,8 +623,8 @@ def whatsup_overview_new():
                                       subject=form.subject.data,
                                       body=form.body.data)
 
-            db.session.add(new_post)
-            db.session.commit()
+            DB.session.add(new_post)
+            DB.session.commit()
 
             flash('Post abgeschickt!', 'success')
             return redirect(redirect_url(default='whatsup_overview_new'))
@@ -636,7 +636,7 @@ def whatsup_overview_new():
     # generate a feed auth token
     token = auth.generate_feed_auth(auth.active_user())
 
-    # ct_data needs a db session to access the ct database
+    # ct_data needs a DB.session to access the ct database
     with ct_connect.session_scope() as ct_session:
         return render_template('whatsup_overview_new.html',
                                posts=posts,
@@ -645,7 +645,7 @@ def whatsup_overview_new():
                                token=token)
 
 
-@app.route('/whatsup/<int:id>/upvote')
+@APP.route('/whatsup/<int:id>/upvote')
 @login_required
 def whatsup_upvote(id):
     post = models.get_whatsup_post(id)
@@ -661,8 +661,8 @@ def whatsup_upvote(id):
 
     if not user_metadata:
         metadata = models.UserMetadata(user_id)
-        db.session.add(metadata)
-        db.session.commit()
+        DB.session.add(metadata)
+        DB.session.commit()
 
     # create upvote
     upvote = models.WhatsUpUpvote(post_id=id, user_id=user_id)
@@ -671,14 +671,14 @@ def whatsup_upvote(id):
     post.active = datetime.datetime.utcnow()
 
     # write to db
-    db.session.add(upvote)
-    db.session.add(post)
-    db.session.commit()
+    DB.session.add(upvote)
+    DB.session.add(post)
+    DB.session.commit()
 
     return redirect(redirect_url(default='whatsup_overview'))
 
 
-@app.route('/whatsup/<int:id>', methods=['GET', 'POST'])
+@APP.route('/whatsup/<int:id>', methods=['GET', 'POST'])
 @login_required
 def whatsup_post(id):
     with ct_connect.session_scope() as ct_session:
@@ -695,8 +695,8 @@ def whatsup_post(id):
 
                 if not user_metadata:
                     metadata = models.UserMetadata(user_id)
-                    db.session.add(metadata)
-                    db.session.commit()
+                    DB.session.add(metadata)
+                    DB.session.commit()
 
                 # add comment
                 comment = models.WhatsUpComment(
@@ -705,8 +705,8 @@ def whatsup_post(id):
                     pub_date=datetime.datetime.utcnow(),
                     body=form.body.data)
 
-                db.session.add(comment)
-                db.session.commit()
+                DB.session.add(comment)
+                DB.session.commit()
 
                 # send mail to post owner
                 sender = ('{} {}'.format(unidecode(active_user['vorname']),
@@ -737,7 +737,7 @@ def whatsup_post(id):
                                ct_session=ct_session)
 
 
-@app.route('/whatsup/mine', methods=['GET', 'POST'])
+@APP.route('/whatsup/mine', methods=['GET', 'POST'])
 @login_required
 def whatsup_mine():
     active_user = auth.active_user()
@@ -770,7 +770,7 @@ def whatsup_mine():
                 post.active = datetime.datetime.utcnow()
 
                 # save to db
-                db.session.commit()
+                DB.session.commit()
 
                 flash('Post veraendert!', 'success')
                 return redirect(url_for('whatsup_mine'))
@@ -784,7 +784,7 @@ def whatsup_mine():
                            edit_forms=edit_forms)
 
 
-@app.route('/search', methods=['POST'])
+@APP.route('/search', methods=['POST'])
 @login_required
 def search():
     if not g.search_form.validate_on_submit():
@@ -793,7 +793,7 @@ def search():
     return redirect(url_for('search_results', query=g.search_form.search.data))
 
 
-@app.route('/search_results/<query>')
+@APP.route('/search_results/<query>')
 @login_required
 def search_results(query):
     with ct_connect.session_scope() as ct_session:

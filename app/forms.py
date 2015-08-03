@@ -1,12 +1,15 @@
+"""Forms."""
+
 from flask_wtf import Form
 from flask_wtf.file import (FileField, FileAllowed)
-from wtforms import (BooleanField, StringField, PasswordField, SubmitField,
-                     TextAreaField)
+from wtforms import (
+    BooleanField, StringField, PasswordField, SubmitField, TextAreaField)
 import wtforms.validators as validators
 from flask.ext.pagedown.fields import PageDownField
 
 
 class LoginForm(Form):
+    """Form to login."""
     email = StringField(
         'Email',
         validators=[validators.DataRequired(), validators.Email()])
@@ -17,6 +20,7 @@ class LoginForm(Form):
 
 
 class EditGroupForm(Form):
+    """Form to edit group."""
     # churchtools
     where = StringField('Treffpunkt')
     when = StringField('Treffzeit')
@@ -33,6 +37,7 @@ class EditGroupForm(Form):
 
 
 class EditIndexForm(Form):
+    """Form to edit frontpage."""
     first_row_image = FileField('Erste Reihe Bild',
                                 validators=[FileAllowed(['jpg'], 'Nur JPGs')])
 
@@ -67,6 +72,7 @@ class EditIndexForm(Form):
 
 
 class AddPrayerForm(Form):
+    """Form to add prayer."""
     body = PageDownField(
         '',
         validators=[validators.DataRequired(), validators.Length(max=700)])
@@ -79,6 +85,7 @@ class AddPrayerForm(Form):
 
 
 class EditProfileForm(Form):
+    """Form to edit profile."""
     # churchtools
     password = PasswordField('Neues Password',
                              validators=[validators.EqualTo('confirm')])
@@ -109,6 +116,7 @@ class EditProfileForm(Form):
 
 
 class MailForm(Form):
+    """Form to send mail."""
     subject = StringField('Betreff', validators=[validators.DataRequired()])
 
     body = TextAreaField('Nachricht', validators=[validators.DataRequired()])
@@ -117,6 +125,7 @@ class MailForm(Form):
 
 
 class AddWhatsUp(Form):
+    """Form to add whatsup post."""
     subject = StringField(
         'Subject',
         validators=[validators.DataRequired(), validators.Length(max=120)])
@@ -129,6 +138,7 @@ class AddWhatsUp(Form):
 
 
 class AddWhatsUpComment(Form):
+    """Form to add whatsup comment."""
     body = TextAreaField(
         'Kommentar',
         validators=[validators.DataRequired(), validators.Length(max=700)])
@@ -137,4 +147,5 @@ class AddWhatsUpComment(Form):
 
 
 class SearchForm(Form):
+    """Form to search."""
     search = StringField('search', validators=[validators.DataRequired()])

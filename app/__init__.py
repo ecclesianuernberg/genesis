@@ -1,3 +1,5 @@
+"""Init Genesis APP."""
+
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
@@ -9,8 +11,10 @@ from flask.ext.pagedown import PageDown
 from flask.ext.restful import Api
 from flask.ext.httpauth import HTTPBasicAuth
 from flask_mail import Mail
-from config import config
 import os
+
+from config import config
+
 
 APP = Flask(__name__)
 
@@ -73,11 +77,12 @@ LOGIN_MANAGER.login_view = 'login'
 
 @LOGIN_MANAGER.user_loader
 def load_user(userid):
-    import auth
-    return auth.CTUser(uid=userid)
+    """User loader for Genesis."""
+    import app.auth
+    return app.auth.CTUser(uid=userid)
 
 # import
-import views
-import rest
-import feeds
-import admin
+import app.views
+import app.rest
+import app.feeds
+import app.admin

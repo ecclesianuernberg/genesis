@@ -1,19 +1,27 @@
-from app import APP, BASIC_AUTH, ct_connect
+"""Everything that has to do with authentication."""
+
 from flask import abort, g, request, session
 from flask.ext.login import UserMixin, current_user
 from flask.ext.restful import abort as abort_rest
 from functools import wraps
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
-                          SignatureExpired, BadSignature, URLSafeSerializer)
+from itsdangerous import (
+    TimedJSONWebSignatureSerializer as Serializer, SignatureExpired,
+    BadSignature, URLSafeSerializer)
 from passlib.hash import bcrypt
+
+from app import APP, BASIC_AUTH, ct_connect
 
 
 class CTUser(UserMixin):
+    """Handles churchtools users and passwords for authentication."""
     def __init__(self, uid=None, password=None, active=True):
         self.id = uid
         self.active = active
 
     def get_user(self):
+        """Try to get churchtools user and return self object if
+        everything is alright.
+        """
         try:
             with ct_connect.session_scope() as ct_session:
                 user = ct_connect.get_person(ct_session, self.id)
@@ -29,8 +37,9 @@ class CTUser(UserMixin):
 
     @staticmethod
     def get_persons(user):
-        ''' create a dict with all person data that matches
-        the logged in email adress. '''
+        """Create a dict with all person data that matches the logged in
+        email adress.
+        """
         person_list = []
         for person in user:
             person_list.append({
@@ -46,6 +55,9 @@ class CTUser(UserMixin):
 
     @staticmethod
     def verify_auth_token(token):
+        """Verify authentication token and return None if signature is
+        too old or bad. If not return user.
+        """
         s = Serializer(APP.config['SECRET_KEY'])
         try:
             data = s.loads(token)
@@ -63,19 +75,20 @@ class CTUser(UserMixin):
 
 
 def generate_auth_token(user, expiration=600):
+    """Returns a authentication token."""
     s = Serializer(APP.config['SECRET_KEY'], expires_in=expiration)
     return s.dumps({'id': user['email']})
 
 
 def get_valid_users(user, password):
-    ''' creates a list of valid users from user object and given password '''
+    """Creates a list of valid users from user object and given password."""
     return [person for person in user.persons if person['password']
             if bcrypt.verify(password, person['password'])]
 
 
 @BASIC_AUTH.verify_password
 def verify_password(email_or_token, password):
-    ''' basic auth used for api '''
+    """Basic auth used for rest api."""
     # check if its a token and if its right
     user = CTUser.verify_auth_token(email_or_token)
     valid_user = None
@@ -110,8 +123,7 @@ def verify_password(email_or_token, password):
 
 
 def own_group(func):
-    ''' a decorator that aborts if its not the own group '''
-
+    """A decorator that aborts if its not the own group."""
     @wraps(func)
     def decorated_function(*args, **kwargs):
         with ct_connect.session_scope() as ct_session:
@@ -145,8 +157,7 @@ def own_group(func):
 
 
 def prayer_owner(func):
-    ''' a decorator that aborts the view if its not the prayer owner '''
-
+    """A decorator that aborts the view if its not the prayer owner."""
     @wraps(func)
     def decorated_function(*args, **kwargs):
         # needs to be done to fix some import problem
@@ -179,7 +190,7 @@ def prayer_owner(func):
 
 
 def own_profile(func):
-    ''' a decorator that aborts if its not the logged in users profile '''
+    """A decorator that aborts if its not the logged in users profile."""
     @wraps(func)
     def decorated_function(*args, **kwargs):
         with ct_connect.session_scope() as ct_session:
@@ -208,8 +219,9 @@ def own_profile(func):
 
 
 def valid_groups_and_users(users=None, groups=None):
-    ''' decorator to limit access a view to a list of users ids or members
-    of a list of groups'''
+    """Decorator to limit access a view to a list of users ids or members
+    of a list of groups.
+    """
     def decorator(func):
         @wraps(func)
         def decorated_function(*args, **kwargs):
@@ -252,17 +264,19 @@ def valid_groups_and_users(users=None, groups=None):
 
 
 def active_user():
-    ''' return the active user out of user session '''
+    """Return the active user out of user session."""
     return [user for user in session['user'] if user['active']][0]
 
 
 def generate_feed_auth(user):
+    """Return a authentication token for feed authentication."""
     s = URLSafeSerializer(APP.config['SECRET_KEY'],
                           salt=APP.config['FEED_SALT'])
     return s.dumps({'id': user['email']})
 
 
 def feed_auth_or_401(token):
+    """Aborts with a 401 if feed request is not authenticated."""
     s = URLSafeSerializer(APP.config['SECRET_KEY'],
                           salt=APP.config['FEED_SALT'])
     try:
@@ -272,6 +286,7 @@ def feed_auth_or_401(token):
 
 
 def is_basic_authorized():
+    """Returns False if is not basic authorized."""
     auth = request.authorization
 
     if not auth:

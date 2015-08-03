@@ -1,11 +1,14 @@
-from app import APP, DB
+"""Configure the admin view."""
+
 from flask.ext.login import current_user
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.sqla import ModelView
-import models
+
+from app import APP, DB, models
 
 
 class MyView(ModelView):
+    """Custom view to manage access."""
     column_display_pk = True
     column_display_all_relations = True
 
@@ -16,16 +19,16 @@ class MyView(ModelView):
             else:
                 return True
         else:
-            False
+            return False
 
 
-admin = Admin(APP)
-admin.add_view(MyView(models.FrontPage, DB.session))
-admin.add_view(MyView(models.News, DB.session))
-admin.add_view(MyView(models.GroupMetadata, DB.session))
-admin.add_view(MyView(models.UserMetadata, DB.session))
-admin.add_view(MyView(models.Image, DB.session))
-admin.add_view(MyView(models.Prayer, DB.session))
-admin.add_view(MyView(models.WhatsUp, DB.session))
-admin.add_view(MyView(models.WhatsUpComment, DB.session))
-admin.add_view(MyView(models.WhatsUpUpvote, DB.session))
+ADMIN = Admin(APP)
+ADMIN.add_view(MyView(models.FrontPage, DB.session))
+ADMIN.add_view(MyView(models.News, DB.session))
+ADMIN.add_view(MyView(models.GroupMetadata, DB.session))
+ADMIN.add_view(MyView(models.UserMetadata, DB.session))
+ADMIN.add_view(MyView(models.Image, DB.session))
+ADMIN.add_view(MyView(models.Prayer, DB.session))
+ADMIN.add_view(MyView(models.WhatsUp, DB.session))
+ADMIN.add_view(MyView(models.WhatsUpComment, DB.session))
+ADMIN.add_view(MyView(models.WhatsUpUpvote, DB.session))

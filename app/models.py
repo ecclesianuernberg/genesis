@@ -1,12 +1,16 @@
-from app import APP, DB, ct_connect
+"""Define models for the metadata database."""
+
 from flask import session
 from sqlalchemy import func
 import flask.ext.whooshalchemy as whooshalchemy
 import random
 import datetime
 
+from app import APP, DB, ct_connect
+
 
 class News(DB.Model):
+    """Model to store news blog postings."""
     __tablename__ = 'news'
 
     id = DB.Column(DB.Integer, primary_key=True)
@@ -27,6 +31,7 @@ class News(DB.Model):
 
 
 class FrontPage(DB.Model):
+    """Model to store information whats on the frontpage."""
     __tablename__ = 'frontpage'
 
     id = DB.Column(DB.Integer, primary_key=True)
@@ -45,6 +50,9 @@ class FrontPage(DB.Model):
 
 
 class GroupMetadata(DB.Model):
+    """Model to store group metadata.
+    The data that is not stored in churchtools.
+    """
     __tablename__ = 'group_metadata'
 
     ct_id = DB.Column(DB.Integer, primary_key=True)
@@ -62,12 +70,15 @@ class GroupMetadata(DB.Model):
 
     @property
     def ct_data(self):
-        ''' returns group data from the churchtools db '''
+        """Returns group data from the churchtools db."""
         with ct_connect.session_scope() as ct_session:
             return ct_connect.get_group(ct_session, self.ct_id)[0]
 
 
 class UserMetadata(DB.Model):
+    """Model to store user metadata.
+    The data that is not stored in churchtools.
+    """
     __tablename__ = 'user_metadata'
 
     ct_id = DB.Column(DB.Integer, primary_key=True)
@@ -91,11 +102,12 @@ class UserMetadata(DB.Model):
         return unicode(self.ct_id)
 
     def ct_data(self, ct_session):
-        ''' returns person data from the churchtools db '''
+        """Returns person data from the churchtools db."""
         return ct_connect.get_person_from_id(ct_session, self.ct_id)[0]
 
 
 class Image(DB.Model):
+    """Model to store image metadata and not the image itself."""
     __tablename__ = 'images'
 
     uuid = DB.Column(DB.String(120), primary_key=True)
@@ -117,6 +129,7 @@ class Image(DB.Model):
 
 
 class Prayer(DB.Model):
+    """Model to store prayers."""
     __tablename__ = 'prayers'
 
     id = DB.Column(DB.Integer, primary_key=True)
@@ -138,6 +151,7 @@ class Prayer(DB.Model):
 
 
 class WhatsUp(DB.Model):
+    """Model to store whatsup posts."""
     __tablename__ = 'whatsup'
     __searchable__ = ['subject', 'body']
 
@@ -158,6 +172,7 @@ class WhatsUp(DB.Model):
                                                                 self.subject)
 
     def did_i_upvote(self):
+        """Return if logged in user upvoted or not."""
         active_id = [user['id'] for user in session['user']
                      if user['active']][0]
 
@@ -167,6 +182,7 @@ class WhatsUp(DB.Model):
             return False
 
     def did_i_comment(self):
+        """Return if logged in user commented or not."""
         active_id = [user['id'] for user in session['user']
                      if user['active']][0]
 
@@ -177,6 +193,7 @@ class WhatsUp(DB.Model):
 
 
 class WhatsUpComment(DB.Model):
+    """Model to store whats up comments."""
     __tablename__ = 'whatsup_comments'
     __searchable__ = ['body']
 
@@ -199,6 +216,7 @@ class WhatsUpComment(DB.Model):
 
 
 class WhatsUpUpvote(DB.Model):
+    """Model to store whatsup upvotes."""
     __tablename__ = 'whatsup_upvotes'
 
     id = DB.Column(DB.Integer, primary_key=True)
@@ -215,15 +233,17 @@ class WhatsUpUpvote(DB.Model):
 
 
 def get_group_metadata(id):
+    """Return group metadata from group id."""
     return GroupMetadata.query.filter_by(ct_id=id).first()
 
 
 def get_user_metadata(id):
+    """Return user metadata from user id."""
     return UserMetadata.query.filter_by(ct_id=id).first()
 
 
 def get_random_prayer():
-    ''' returns a random still active prayer '''
+    """Returns a random and still active prayer."""
     prayers = Prayer.query.filter_by(active=True).all()
     if len(prayers) > 0:
         return random.choice(prayers)
@@ -232,21 +252,25 @@ def get_random_prayer():
 
 
 def get_prayer(id):
+    """Returns specific prayer from id."""
     return Prayer.query.get(id)
 
 
 def get_own_prayers(user_id):
+    """Returns own submitted prayers."""
     return Prayer.query.filter_by(user_id=user_id).order_by(
         Prayer.pub_date.desc()).all()
 
 
 def get_whatsup_post(id):
+    """Return specific whatsup post from id."""
     return WhatsUp.query.filter_by(id=id).first_or_404()
 
 
 def get_whatsup_overview():
-    ''' returns all posts that are not inactive for the last 60 days and are
-    ordered after upvotes made '''
+    """Returns all posts that are not inactive for the last 60 days and are
+    ordered after upvotes made.
+    """
     sixty_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=60)
 
     return WhatsUp.query.outerjoin(WhatsUpUpvote).filter(
@@ -256,24 +280,29 @@ def get_whatsup_overview():
 
 
 def get_own_whatsup_posts(id):
+    """Return own whatsup posts."""
     return WhatsUp.query.filter_by(user_id=id).order_by(
         WhatsUp.pub_date.desc()).all()
 
 
 def get_latest_whatsup_posts(limit):
+    """Return latest whatsup posts."""
     return WhatsUp.query.order_by(WhatsUp.pub_date.desc()).limit(limit).all()
 
 
 def get_latest_whatsup_comments(limit):
+    """Return latest whatsup comments."""
     return WhatsUpComment.query.order_by(
         WhatsUpComment.pub_date.desc()).limit(limit).all()
 
 
 def search_whatsup_posts(query):
+    """Return whatsup posts of searched query."""
     return WhatsUp.query.whoosh_search(query).all()
 
 
 def search_whatsup_comments(query):
+    """Return whatsup comments of searched query."""
     return WhatsUpComment.query.whoosh_search(query).all()
 
 # whoosh index stuff

@@ -91,9 +91,12 @@
   become: yes
   become_user: vagrant
 
-- name: install tox
-  shell: /home/vagrant/.local/bin/pipsi install tox
+- name: install tools
+  shell: /home/vagrant/.local/bin/pipsi install {{ item }}
   args:
-    creates: /home/vagrant/.local/bin/tox
+    creates: /home/vagrant/.local/bin/{{ item }}
   become: yes
   become_user: vagrant
+  with_items:
+    - tox
+    - pylint

@@ -78,6 +78,6 @@ def load_user(userid):
 
 # import
 import views
-import api
+import rest
 import feeds
 import admin

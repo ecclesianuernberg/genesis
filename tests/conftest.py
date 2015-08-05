@@ -12,6 +12,9 @@ os.environ['FLASK_CONFIG'] = 'testing'
 
 from app import APP, DB, ct_connect
 
+# import test routes to test against
+import routes
+
 
 # get test user
 TEST_USER = APP.config['TEST_USER']

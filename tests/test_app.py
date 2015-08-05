@@ -4,7 +4,6 @@ import flask
 import tempfile
 import pytest
 import feedparser
-from app import APP, ct_connect, auth, MAIL, mailing, models, views
 from passlib.hash import bcrypt
 from PIL import Image
 from random import choice
@@ -12,6 +11,8 @@ from unidecode import unidecode
 from bs4 import BeautifulSoup
 from time import sleep
 from werkzeug.exceptions import NotFound
+
+from app import APP, ct_connect, auth, MAIL, mailing, models, views
 from helper import (login, logout, add_prayer, edit_prayer, del_prayer,
                     get_own_group_ids, edit_group, get_other_group_ids,
                     get_wrong_user_id,
@@ -19,6 +20,7 @@ from helper import (login, logout, add_prayer, edit_prayer, del_prayer,
                     add_whatsup_upvote, add_whatsup_comment, edit_whatsup_post,
                     get_whatsup_feed_posts, get_whatsup_feed_comments,
                     edit_index, search)
+
 
 # get test user
 TEST_USER = APP.config['TEST_USER']

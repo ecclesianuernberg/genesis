@@ -122,6 +122,28 @@ def verify_password(email_or_token, password):
     return True
 
 
+def active_user():
+    """Return the active user out of user session."""
+    return [user for user in session['user'] if user['active']][0]
+
+
+def generate_feed_auth(user):
+    """Return a authentication token for feed authentication."""
+    s = URLSafeSerializer(APP.config['SECRET_KEY'],
+                          salt=APP.config['FEED_SALT'])
+    return s.dumps({'id': user['email']})
+
+
+def is_basic_authorized():
+    """Returns False if is not basic authorized."""
+    auth = request.authorization
+
+    if not auth:
+        return False
+
+    return verify_password(auth['username'], auth['password'])
+
+
 def own_group(func):
     """A decorator that aborts if its not the own group."""
     @wraps(func)
@@ -263,33 +285,18 @@ def valid_groups_and_users(users=None, groups=None):
     return decorator
 
 
-def active_user():
-    """Return the active user out of user session."""
-    return [user for user in session['user'] if user['active']][0]
+def feed_authorized(func):
+    """Decorator to limit access to the feeds."""
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        s = URLSafeSerializer(APP.config['SECRET_KEY'],
+                              salt=APP.config['FEED_SALT'])
 
+        try:
+            s.loads(request.args.get('token'))
+        except:
+            abort(401)
 
-def generate_feed_auth(user):
-    """Return a authentication token for feed authentication."""
-    s = URLSafeSerializer(APP.config['SECRET_KEY'],
-                          salt=APP.config['FEED_SALT'])
-    return s.dumps({'id': user['email']})
+        return func(*args, **kwargs)
 
-
-def feed_auth_or_401(token):
-    """Aborts with a 401 if feed request is not authenticated."""
-    s = URLSafeSerializer(APP.config['SECRET_KEY'],
-                          salt=APP.config['FEED_SALT'])
-    try:
-        s.loads(token)
-    except:
-        abort(401)
-
-
-def is_basic_authorized():
-    """Returns False if is not basic authorized."""
-    auth = request.authorization
-
-    if not auth:
-        return False
-
-    return verify_password(auth['username'], auth['password'])
+    return decorated_function

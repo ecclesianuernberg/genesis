@@ -9,11 +9,9 @@ from app.views import make_external
 
 
 @APP.route('/feeds/whatsup.atom')
+@auth.feed_authorized
 def whatsup_recent_posts():
     """Return feed of latest posts."""
-    # checks token and returns a 401 if the token is not valid
-    auth.feed_auth_or_401(request.args.get('token'))
-
     feed = AtomFeed('Recent WhatsUp Posts',
                     feed_url=request.url,
                     url=request.url_root)
@@ -34,11 +32,9 @@ def whatsup_recent_posts():
 
 
 @APP.route('/feeds/whatsup-comments.atom')
+@auth.feed_authorized
 def whatsup_recent_comments():
     """Return feed of latest comments."""
-    # checks token and returns a 401 if the token is not valid
-    auth.feed_auth_or_401(request.args.get('token'))
-
     feed = AtomFeed('Recent WhatsUp Comments',
                     feed_url=request.url,
                     url=request.url_root)
